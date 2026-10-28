@@ -73,19 +73,21 @@ test('真实归档：install --dry-run 只读；已注入时报 already/过期�
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-real-'))
   try {
     const report = install({ archive: ASAR, dryRun: true, running: false, dir })
-    assert.equal(report.dryRun, true)
-    if (detection.installed) {
-      assert.equal(report.already === true || report.needsReinstall === true, true)
-      if (detection.payloadVersion !== PAYLOAD_VERSION) {
+    if (detection.installed && detection.payloadVersion === PAYLOAD_VERSION) {
+      assert.equal(report.already, true, '已注入同版本载荷时干跑应直接报 already')
+    } else {
+      assert.equal(report.dryRun, true)
+      if (detection.installed) {
+        assert.equal(report.already === true || report.needsReinstall === true, true)
         assert.equal(report.needsReinstall, true, '旧载荷必须被判为需重注')
         assert.equal(report.stale, true)
-      }
-    } else {
-      const size = fs.statSync(ASAR).size
-      for (const write of report.writes) {
-        assert.equal(Number.isInteger(write.fileOffset), true)
-        assert.equal(write.fileOffset >= 0, true)
-        assert.equal(write.fileOffset + write.bytes <= size, true, `${write.label} 越界`)
+      } else {
+        const size = fs.statSync(ASAR).size
+        for (const write of report.writes) {
+          assert.equal(Number.isInteger(write.fileOffset), true)
+          assert.equal(write.fileOffset >= 0, true)
+          assert.equal(write.fileOffset + write.bytes <= size, true, `${write.label} 越界`)
+        }
       }
     }
     assert.equal(fs.existsSync(path.join(dir, '.dsh-window-resolution.restore.json')), false, '干跑不落边车')
