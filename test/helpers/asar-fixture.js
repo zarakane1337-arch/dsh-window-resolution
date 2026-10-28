@@ -133,6 +133,7 @@ export function preloadEntry(options = {}) {
     '\tdocument.documentElement.dataset.platform = process.platform;',
     '}',
     '',
+    'electron.ipcRenderer.invoke(PLATFORM_IPC.bootstrap).then((state) => state);',
     'electron.contextBridge.exposeInMainWorld("dshDesktop", { protocolVersion: 1 });',
     '',
   )
