@@ -4,7 +4,7 @@
 
 **Blocked by:** 02（通道）、03（配置与持久化）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] `immediately:true` 启动路径在页面加载后应用配置；应用前退出全屏/取消最大化
 - [ ] 浏览器环境（非 `dsh-app://`）不尝试改窗口，仅记录"非桌面"状态

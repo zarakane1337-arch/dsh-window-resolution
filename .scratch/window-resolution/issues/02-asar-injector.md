@@ -4,7 +4,7 @@
 
 **Blocked by:** 01（骨架与 IPC 契约）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] 注入器拆为纯函数（header 解析、偏移计算、锚点扫描、字节预算、ASCII 校验）并有单测覆盖
 - [ ] 锚点候选数组，扫描时跳过已被占用字节；与 `dsh-window-control` 注入区互不覆盖（本机实测）

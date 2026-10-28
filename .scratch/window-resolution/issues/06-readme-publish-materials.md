@@ -4,7 +4,7 @@
 
 **Blocked by:** 05（需要已验证行为与截图）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] README 中英双语，含安装/卸载/两次重启/风险/降级/截图
 - [ ] 安装步骤包含 profile 安装方式与注入生效条件
