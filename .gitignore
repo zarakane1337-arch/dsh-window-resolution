@@ -1,8 +1,19 @@
-node_modules/
-.DS_Store
-*.log
-.worktrees/
-.scratch-*
+# 白名单模式：默认忽略一切，只放行源码、README 与 CHANGELOG。
+/*
 
-_probe/
-.worktrees/
+# 本文件自身
+!/.gitignore
+
+# 源码
+!/lib/
+!/locale/
+!/test/
+
+# 包元数据（缺了它 clone 下来无法安装/加载）
+!/package.json
+!/LICENSE
+!/cordis.patch.yml
+
+# 文档
+!/README.md
+!/CHANGELOG.md
