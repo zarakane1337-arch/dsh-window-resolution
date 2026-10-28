@@ -46,28 +46,118 @@ function stubGlobal(name, value) {
 }
 
 /**
+ * 在指定的假 `window` 下执行一段代码。
+ *
+ * 组件是在加载之后、交互时读取 `window` 的（localStorage、桌面桥），所以断言必须
+ * 覆盖到「渲染与交互」这一段，而不只是加载那一刻。
+ *
+ * @param {object} windowObject - 假 window。
+ * @param {() => unknown} fn - 待执行的代码。
+ * @returns {unknown} `fn` 的返回值。
+ */
+export function withWindow(windowObject, fn) {
+  const restore = stubGlobal('window', windowObject)
+  try {
+    return fn()
+  } finally {
+    restore()
+  }
+}
+
+/**
+ * 造一个内存版 `localStorage`。
+ *
+ * `throwOnGet` / `throwOnSet` 用来模拟「站点数据被禁用」：设置页必须在这种环境下
+ * 依旧可用（读失败回落默认值、写失败仅本次生效），而不是白屏。
+ *
+ * @param {Record<string, string>} [seed] - 初始键值。
+ * @returns {{
+ *   data: Map<string, string>, throwOnGet: boolean, throwOnSet: boolean,
+ *   getItem: (key: string) => string | null, setItem: (key: string, value: string) => void,
+ *   removeItem: (key: string) => void, clear: () => void,
+ * }} 假存储。
+ */
+export function createFakeStorage(seed = {}) {
+  const data = new Map(Object.entries(seed))
+  const storage = {
+    data,
+    throwOnGet: false,
+    throwOnSet: false,
+    getItem(key) {
+      if (storage.throwOnGet) throw new Error('storage unavailable')
+      return data.has(key) ? data.get(key) : null
+    },
+    setItem(key, value) {
+      if (storage.throwOnSet) throw new Error('storage unavailable')
+      data.set(key, String(value))
+    },
+    removeItem(key) {
+      data.delete(key)
+    },
+    clear() {
+      data.clear()
+    },
+  }
+  return storage
+}
+
+/**
+ * 造一个假 `window`：事件目标 + 模块装载器 + localStorage + 可选的桌面桥。
+ *
+ * 用真的 `EventTarget` 是因为客户端会 `dispatchEvent(CustomEvent)` 广播配置变更、
+ * 也会 `addEventListener` 监听外部变更；假的 dispatch 很难保证同一个语义。
+ *
+ * @param {{ storage?: object, bridge?: object }} [options] - 存储与桌面桥。
+ * @returns {object} 假 window，`__entries` 收集模块装载器登记项。
+ */
+export function createFakeWindow(options = {}) {
+  const target = new EventTarget()
+  target.localStorage = options.storage || createFakeStorage()
+  target.__entries = []
+  target.__ModuleLoader__ = {
+    load(entry) {
+      target.__entries.push(entry)
+    },
+  }
+  if (options.bridge !== undefined) target.dshWindowResolution = options.bridge
+  return target
+}
+
+/**
+ * 只做元素工厂的假 React（无 hooks，兼容不渲染组件的旧用例）。
+ *
+ * @returns {object} 假 React。
+ */
+function createBasicReact() {
+  return {
+    createElement(type, props) {
+      const children = Array.prototype.slice.call(arguments, 2).flat()
+      return { type, props: props || {}, children }
+    },
+  }
+}
+
+/**
  * 加载 `lib/client.js`，取出 `__ModuleLoader__.load()` 的登记项与工厂导出。
  *
- * @param {{language?: string, modules?: Record<string, unknown>}} [options] - 语言与额外的 require 模块。
- * @returns {{entry: {id: string, factory: Function}, exports: object, react: object}} 登记项、工厂导出与假 React。
+ * @param {{
+ *   language?: string,
+ *   modules?: Record<string, unknown>,
+ *   react?: object,
+ *   window?: object,
+ *   storage?: object,
+ *   bridge?: object,
+ * }} [options] - 语言、额外模块、假 React 与假 window（也可分别给 storage/bridge）。
+ * @returns {{entry: {id: string, factory: Function}, exports: object, react: object, window: object}}
+ *   登记项、工厂导出、假 React 与假 window。
  */
 export function loadClient(options = {}) {
   const language = options.language || 'en-US'
   const extraModules = options.modules || {}
-  const registrations = []
+  const react = options.react || createBasicReact()
+  const windowObject =
+    options.window || createFakeWindow({ storage: options.storage, bridge: options.bridge })
   const source = fs.readFileSync(CLIENT_FILE, 'utf8')
-  const windowObject = {
-    __ModuleLoader__: {
-      load(entry) {
-        registrations.push(entry)
-      },
-    },
-  }
-  const react = {
-    createElement(type, props, ...children) {
-      return { type, props: props || {}, children: children.flat() }
-    },
-  }
 
   const restoreWindow = stubGlobal('window', windowObject)
   const restoreNavigator = stubGlobal('navigator', { language })
@@ -78,6 +168,7 @@ export function loadClient(options = {}) {
     restoreWindow()
   }
 
+  const registrations = windowObject.__entries
   if (registrations.length !== 1) {
     throw new Error(`lib/client.js 应调用一次 __ModuleLoader__.load()，实际 ${registrations.length} 次`)
   }
@@ -87,7 +178,7 @@ export function loadClient(options = {}) {
     if (Object.prototype.hasOwnProperty.call(extraModules, name)) return extraModules[name]
     throw new Error(`意外的 require('${name}')：客户端只应依赖宿主提供的模块`)
   })
-  return { entry, exports, react }
+  return { entry, exports, react, window: windowObject }
 }
 
 /**
@@ -97,11 +188,13 @@ export function loadClient(options = {}) {
  * 取决于系统区域设置（这里是 zh-CN），所以断言语言回退时必须把假 navigator 撑到
  * 断言结束，不能只撑到加载那一刻。
  *
- * @param {string} language - 语言标签，如 `en-US` / `zh-CN`。
+ * @param {string | {language?: string}} languageOrOptions - 语言标签，或 `{language}` 选项。
  * @param {() => unknown} fn - 待执行的代码。
  * @returns {unknown} `fn` 的返回值。
  */
-export function withBrowserLanguage(language, fn) {
+export function withBrowserLanguage(languageOrOptions, fn) {
+  const language =
+    typeof languageOrOptions === 'string' ? languageOrOptions : (languageOrOptions || {}).language
   const restore = stubGlobal('navigator', { language })
   try {
     return fn()
