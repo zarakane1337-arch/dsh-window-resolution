@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "title": "窗口分辨率",
+    "description": "为主窗口选择预设或自定义的外框宽高：设置页即改即用，并在每次启动 DSH 时强制应用。"
+  },
+  "section": "窗口分辨率",
+  "sectionDescription": "选择主窗口的外框尺寸，改完立即生效，并在每次启动 DSH 时强制应用。",
+  "statusDesktop": "已检测到 DSH 桌面端。",
+  "statusNotDesktop": "当前不在 DSH 桌面端运行，窗口尺寸无法在这里调整。",
+  "statusPatched": "窗口通道已就绪。",
+  "statusNotPatched": "窗口通道尚未注入；注入完成后需要重启 DSH 两次才会生效。",
+  "statusError": "上次操作失败：{message}"
+}

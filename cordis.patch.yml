@@ -1,0 +1,11 @@
+# dsh-plugin-resolution bundle layer.
+#
+# 由 package.json 的 `dsh.bundle.patch` 声明，`dsh plugin add dsh-plugin-resolution`
+# 会自动挂载这条 insert。
+#
+# 本插件是双载体（host + client）：client 半体负责设置页 UI，host 半体负责
+# `resources/app.asar` 的窗口通道注入（见 docs/ipc-contract.md 与 ADR 0001）。
+# 骨架阶段还没有 host 行为，insert 只负责把插件挂进插件树。
+- insert:
+    - id: dsh-plugin-resolution
+      name: dsh-plugin-resolution

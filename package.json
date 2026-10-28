@@ -1,0 +1,49 @@
+{
+  "name": "dsh-plugin-resolution",
+  "version": "0.1.0",
+  "description": "Pick a window resolution (presets or custom width x height) for the DeepSeek Harness desktop window: applies immediately from Settings and is force-applied on every DSH launch. Requires the plugin's own app.asar window-bounds bridge; degrades silently outside the desktop app.",
+  "type": "module",
+  "license": "MIT",
+  "author": "utop14",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "cordis.patch.yml",
+    "docs/ipc-contract.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-slots",
+        "@deepseek-ai/dsh-client-locale"
+      ]
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "dsh-plugin",
+    "window",
+    "resolution",
+    "screen-size"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "meta": {
+    "title": "Window Resolution",
+    "description": "Pick a preset or a custom outer size for the DSH main window: applies immediately from Settings and is force-applied on every DSH launch."
+  },
+  "section": "Window Resolution",
+  "sectionDescription": "Choose the outer size of the DSH main window. Changes apply immediately and are force-applied on every DSH launch.",
+  "statusDesktop": "DSH desktop app detected.",
+  "statusNotDesktop": "Not running in the DSH desktop app, so the window size cannot be changed here.",
+  "statusPatched": "The window channel is ready.",
+  "statusNotPatched": "The window channel is not injected yet; after injecting, restart DSH twice.",
+  "statusError": "Last attempt failed: {message}"
+}
