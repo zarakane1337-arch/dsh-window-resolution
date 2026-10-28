@@ -16,6 +16,7 @@
     "locale",
     "cordis.patch.yml",
     "docs/ipc-contract.md",
+    "docs/settings-ui.md",
     "LICENSE"
   ],
   "dsh": {
