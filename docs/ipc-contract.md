@@ -71,8 +71,10 @@ setBounds({ width: number, height: number }) => Promise<
 
 1. `assertDesktopSender` 校验 sender；
 2. 取主窗口，取不到 → `no-window`；
-3. 若全屏则退出全屏；若最大化则取消最大化（强制应用语义，见 `GLOSSARY.md`）；
-4. 按当前屏幕**可用工作区**钳制请求宽高（`屏幕 width/height` 与最小值的交集）；
+3. 若全屏则退出全屏；若最大化则取消最大化；两条路径都**等待事件**（`leave-full-screen` / `unmaximize`）
+   或以 400ms 兜底超时才继续（强制应用语义，见 `GLOSSARY.md`）；
+4. 先按契约 `MIN_SIDE = 200` / `MAX_SIDE = 16384` 钳制请求宽高，再与当前屏幕**可用工作区**
+   取交集（不叠加任何宿主窗口尺寸假设：宿主自己的最小尺寸由主进程 `setBounds` 决定，回读即真实结果）；
 5. `setBounds({ width, height })`（只给尺寸，位置由下一步决定）；
 6. 在当前屏幕居中；
 7. 回读 `getBounds()` 并按上面的成功形状返回。
@@ -125,9 +127,29 @@ getState() => Promise<{
 
 ## 版本与兼容
 
-- 契约版本：`CONTRACT_VERSION = 1`（`lib/contract.js`），对应命名空间上的 `v: 1`。
-- 注入版本（asar 桥的修订号，决定「要不要重新注入」）与契约版本**相互独立**：T02 会另设自己的注入版本常量，两者不要混用。
-- 客户端无法 `import` 本仓库的 `lib/contract.js`（它的模块加载器只负责 `react` 等宿主提供的依赖），因此客户端里的字面量（命名空间、`v`、错误码、200/16384）必须与本文一致，并在 T03 补一条「客户端字面量 ↔ `lib/contract.js`」的 parity 测试。
+三个版本号**相互独立**，不要混用：
+
+| 常量 | 值 | 承载位置 | 作用 |
+| --- | --- | --- | --- |
+| `CONTRACT_VERSION` | `1` | 命名空间上的 `v: 1`（`lib/contract.js`） | IPC 报文形状；新增错误码 = 升级 |
+| `BRIDGE_VERSION` | `1` | 回滚边车与状态文件的 `version`（`lib/bridge/install.js`） | 边车/状态文件格式；格式变更才升级 |
+| `PAYLOAD_VERSION` | `2` | 注入注释里的 `/*dsh-wrp:v2*/` 标记（`lib/bridge/patch.js`） | 决定「要不要重新注入」 |
+
+重注规则：
+
+- 载荷行为变化（新增等待、改钳制等）必须把 `PAYLOAD_VERSION` 加一并更新标记；标记由注入器写进
+  `main-helpers` 注释末尾，`detect()` 用 `/*dsh-wrp:v(\d+)*/` 解析。
+- `install` / `ensurePatched` 先比较 `detection.payloadVersion !== PAYLOAD_VERSION`：不一致即视为陈旧，
+  用回滚边车还原旧字节后重注，并在报告里给 `reinstalled: true`（与首次安装的 `changed`、
+  已最新的 `already` 区分）。
+- 没有标记的历史注入（本机 v1）`payloadVersion === null`，同样判为陈旧。
+- 陈旧且**边车缺失**时不能安全重注（无法精确还原旧字节），`install` 以 `no-state` 失败，
+  此时重装 DSH 桌面端即可恢复干净归档。
+- `dryRun` 下陈旧归档返回 `needsReinstall: true`，只报告不写盘。
+
+客户端无法 `import` 本仓库的 `lib/contract.js`（它的模块加载器只负责 `react` 等宿主提供的依赖），
+因此客户端里的字面量（命名空间、`v`、错误码、200/16384）必须与本文一致，并在 T03 补一条
+「客户端字面量 ↔ `lib/contract.js`」的 parity 测试。
 
 ## 实现分工
 

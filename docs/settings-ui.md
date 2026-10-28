@@ -21,6 +21,11 @@
 字段非法、自定义宽高越界都回落 `DEFAULT_CONFIG`（关闭 + 1920×1080），**不**把非法值悄悄
 修成用户没选过的尺寸。「关闭」也会持久化，保证下次启动不擅自改窗口。
 
+注入侧的现状（`installed`、`payloadVersion`、`targetVersion`、`consistent`）由 host 自检写入
+`~/.dsh/profiles/<profile>/.dsh-window-resolution.json`（字段见
+[`docs/asar-injection.md`](./asar-injection.md)）；设置页只展示 `status` 键里最近一次应用结果，
+不直接读这个文件，也不显示注入版本。
+
 ## 变更广播
 
 每次用户变更都会：写入 `config` 键 → 在当前 `window` 上派发

@@ -5,7 +5,8 @@
 #
 # 本插件是双载体（host + client）：client 半体负责设置页 UI，host 半体负责
 # `resources/app.asar` 的窗口通道注入（见 docs/ipc-contract.md 与 ADR 0001）。
-# 骨架阶段还没有 host 行为，insert 只负责把插件挂进插件树。
+# host 半体的 apply() 在每次启动时自检：未注入就注入，载荷版本过期就还原后重注，
+# 失败只写状态文件、不阻塞启动。insert 只负责把插件挂进插件树。
 - insert:
     - id: dsh-plugin-resolution
       name: dsh-plugin-resolution
