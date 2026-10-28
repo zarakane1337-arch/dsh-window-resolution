@@ -10,6 +10,7 @@ import {
   textOf,
 } from './helpers/client-harness.js'
 import { PRESETS } from '../lib/config.js'
+import { STATUS_KEY } from './helpers/startup-harness.js'
 
 /** 设置页写配置用的 localStorage 键（必须与 docs/settings-ui.md 一致）。 */
 const STORAGE_KEY = 'dsh-plugin-resolution:config'
@@ -523,6 +524,42 @@ test('卸载时移除事件监听', () => {
   view.unmount()
   assert.equal(removed.length, 1, '卸载时必须解绑')
   assert.equal(removed[0], added[0], '解绑的必须是同一个处理函数')
+})
+
+test('状态区展示上次启动的应用结果', async () => {
+  const { view, exports } = setup({
+    seed: { [STATUS_KEY]: JSON.stringify({ state: 'applied', width: 2560, height: 1440, at: 1 }) },
+  })
+  await wait()
+  assert.ok(
+    textByRole(view, 'status').includes(
+      fill(exports, 'statusStartupApplied', { width: 2560, height: 1440 }),
+    ),
+    `状态区应展示启动应用结果：${textByRole(view, 'status')}`,
+  )
+})
+
+test('状态区展示上次启动失败的原因', async () => {
+  const { view, exports } = setup({
+    seed: {
+      [STATUS_KEY]: JSON.stringify({ state: 'failed', code: 'no-window', message: 'no window yet', at: 1 }),
+    },
+  })
+  await wait()
+  const status = textByRole(view, 'status')
+  assert.ok(status.includes(exports.locales.zh.statusNoWindow), `失败状态应映射错误码：${status}`)
+})
+
+test('状态区展示 pending 与未注入状态', async () => {
+  const pending = setup({ seed: { [STATUS_KEY]: JSON.stringify({ state: 'pending', attempts: 2 }) } })
+  await wait()
+  assert.ok(textByRole(pending.view, 'status').includes(pending.exports.locales.zh.statusPending))
+
+  const notPatched = setup({ seed: { [STATUS_KEY]: JSON.stringify({ state: 'not-patched' }) } })
+  await wait()
+  assert.ok(
+    textByRole(notPatched.view, 'status').includes(notPatched.exports.locales.zh.statusNotPatched),
+  )
 })
 
 test('加载客户端不产生副作用：不读存储、不调桥', () => {
