@@ -13,12 +13,14 @@ import {
   detectRunning,
   ensurePatched,
   install,
+  locateTargetVersion,
   restore,
   status,
   uninstall,
   verifyArchive,
 } from '../lib/bridge/install.js'
-import { defaultArchive } from './helpers/asar-fixture.js'
+import { BLOCKS, PAYLOADS, PAYLOAD_VERSION, VERSION_MARK, applyBlocks, planBlocks } from '../lib/bridge/patch.js'
+import { buildArchive, defaultArchive, mainEntry, preloadEntry } from './helpers/asar-fixture.js'
 
 /**
  * 在临时目录里铺一份合成归档，返回路径与清理函数。
@@ -355,5 +357,206 @@ test('ensurePatched 在可注入归档上装好，在不可注入归档上只写
     assert.equal(typeof statusFile.error.code, 'string')
   } finally {
     broken.dispose()
+  }
+})
+
+test('status 在已注入归档上不再做规划：plan 为 null，输出现状与自洽结论', () => {
+  const space = workspace()
+  try {
+    install({ archive: space.archive, dir: space.dir, running: false })
+    const report = status({ archive: space.archive })
+    assert.equal(report.ok, true)
+    assert.equal(report.installed, true)
+    assert.equal(report.plan, null, '已注入时不该再 buildPatch（会撞 assertNoCollision）')
+    assert.equal(report.consistent, true)
+    assert.equal(report.problems.length, 0)
+    assert.equal(report.payloadVersion, PAYLOAD_VERSION)
+    assert.equal(report.stale, false)
+    assert.deepEqual(report.anchors.map((block) => block.id), ['main-helpers', 'main-handler', 'preload-bridge'])
+    for (const block of report.anchors) assert.equal(Number.isInteger(block.byteStart), true)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('status 在已注入但字节被改坏的归档上报 ok:false 且 error:inconsistent', () => {
+  const space = workspace()
+  try {
+    install({ archive: space.archive, dir: space.dir, running: false })
+    const bytes = fs.readFileSync(space.archive)
+    const offset = bytes.toString('latin1').indexOf('dsh-desktop:window-bounds-set')
+    assert.ok(offset > 0)
+    bytes.write('dsh-desktop:window-bounds-seT', offset, 'latin1')
+    fs.writeFileSync(space.archive, bytes)
+    const report = status({ archive: space.archive })
+    assert.equal(report.ok, false)
+    assert.equal(report.consistent, false)
+    assert.equal(report.plan, null)
+    assert.equal(report.error.code, 'inconsistent')
+    assert.equal(typeof report.error.message, 'string')
+  } finally {
+    space.dispose()
+  }
+})
+
+/**
+ * 造一份「旧版（v1）注入」归档：载荷与现在一样，但没有版本标记，且头部哈希自洽。
+ *
+ * @returns {Buffer} 旧载荷归档字节。
+ */
+function legacyArchiveBytes() {
+  const sources = { main: mainEntry(), preload: preloadEntry() }
+  const blocks = BLOCKS.map((block) =>
+    block.id === 'main-helpers' ? { ...block, code: PAYLOADS.mainHelpers.replace(VERSION_MARK, '') } : block,
+  )
+  const planned = planBlocks({ sources, blocks })
+  return buildArchive({
+    entries: {
+      '/lib/main.js': applyBlocks(sources.main, planned.main),
+      '/lib/preload-app.cjs': applyBlocks(sources.preload, planned.preload),
+    },
+  }).buffer
+}
+
+test('detect/status 把没有版本标记的旧注入判为载荷过期', () => {
+  const space = workspace()
+  try {
+    fs.writeFileSync(space.archive, legacyArchiveBytes())
+    const detection = detect(space.archive)
+    assert.equal(detection.installed, true)
+    assert.equal(detection.payloadVersion, null, '旧载荷没有 /*dsh-wrp:vN*/ 标记')
+
+    const report = status({ archive: space.archive })
+    assert.equal(report.installed, true)
+    assert.equal(report.ok, true, '旧载荷自身仍是自洽的，ok 只表示归档可读')
+    assert.equal(report.consistent, true)
+    assert.equal(report.payloadVersion, null)
+    assert.equal(report.stale, true)
+    assert.equal(report.plan, null)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('install --dry-run 对旧载荷报 needsReinstall，且一个字节都不改', () => {
+  const space = workspace()
+  try {
+    const legacy = legacyArchiveBytes()
+    fs.writeFileSync(space.archive, legacy)
+    const report = install({ archive: space.archive, dir: space.dir, dryRun: true, running: false })
+    assert.equal(report.ok, true)
+    assert.equal(report.dryRun, true)
+    assert.equal(report.needsReinstall, true)
+    assert.equal(report.stale, true)
+    assert.equal(report.previousPayloadVersion, null)
+    assert.deepEqual(fs.readFileSync(space.archive), legacy)
+    assert.equal(fs.existsSync(path.join(space.dir, RECOVERY_FILE)), false)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('install 在载荷版本过期时先还原再重注，并区分 reinstalled 与 updated', () => {
+  const space = workspace()
+  try {
+    install({ archive: space.archive, dir: space.dir, running: false })
+    const firstRun = fs.readFileSync(space.archive)
+    const report = install({ archive: space.archive, dir: space.dir, running: false, force: true })
+    assert.equal(report.reinstalled, true, 'force 重注必须与普通 updated 区分')
+    assert.equal(report.previousPayloadVersion, PAYLOAD_VERSION)
+    assert.equal(report.payloadVersion, PAYLOAD_VERSION)
+    assert.deepEqual(fs.readFileSync(space.archive), firstRun, '同版本重注是幂等的：字节不变')
+    assert.equal(check({ archive: space.archive }).consistent, true)
+    assert.equal(detect(space.archive).payloadVersion, PAYLOAD_VERSION)
+    assert.equal(readJson(path.join(space.dir, STATUS_FILE)).payloadVersion, PAYLOAD_VERSION)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('install --dry-run 在已是最新载荷时仍报 already，不误报重注', () => {
+  const space = workspace()
+  try {
+    install({ archive: space.archive, dir: space.dir, running: false })
+    const report = install({ archive: space.archive, dir: space.dir, dryRun: true, running: false })
+    assert.equal(report.already, true)
+    assert.equal(report.needsReinstall, undefined)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('restore --force 在没有边车、也没注入时也报 no-state（不能假装还原成功）', () => {
+  const space = workspace()
+  try {
+    const error = throwsBridge(() => restore({ archive: space.archive, dir: space.dir, force: true }), 'no-state')
+    assert.match(error.message, /app\.asar\.orig/)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('uninstall 在从未安装时不报 uninstalled:true', () => {
+  const space = workspace()
+  try {
+    const report = uninstall({ archive: space.archive, dir: space.dir })
+    assert.equal(report.restored, false)
+    assert.equal(report.uninstalled, true, '未注入时没有东西可卸，但状态文件可以清理')
+    assert.equal(fs.existsSync(path.join(space.dir, STATUS_FILE)), false)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('locateTargetVersion 依次读 app-update.yml、version、上级 version、app/package.json', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-version-'))
+  const resources = path.join(root, 'resources')
+  fs.mkdirSync(resources, { recursive: true })
+  const archive = path.join(resources, 'app.asar')
+  fs.writeFileSync(archive, 'x')
+  try {
+    assert.equal(locateTargetVersion(archive), null, '什么都没有时必须返回 null')
+
+    fs.writeFileSync(path.join(resources, 'app-update.yml'), 'provider: generic\nversion: 44.7.0\n')
+    fs.writeFileSync(path.join(resources, 'version'), '1.0.0\n')
+    fs.writeFileSync(path.join(root, 'version'), '0.9.0\n')
+    assert.equal(locateTargetVersion(archive), '44.7.0', 'app-update.yml 优先级最高')
+
+    fs.rmSync(path.join(resources, 'app-update.yml'))
+    assert.equal(locateTargetVersion(archive), '1.0.0', '其次 resources/version')
+
+    fs.rmSync(path.join(resources, 'version'))
+    assert.equal(locateTargetVersion(archive), '0.9.0', '再次是归档上级目录的 version')
+
+    fs.rmSync(path.join(root, 'version'))
+    fs.mkdirSync(path.join(resources, 'app'))
+    fs.writeFileSync(path.join(resources, 'app', 'package.json'), '{"name":"dsh","version":"4.5.6"}\n')
+    assert.equal(locateTargetVersion(archive), '4.5.6', '最后读 resources/app/package.json')
+
+    fs.writeFileSync(path.join(resources, 'app-update.yml'), 'provider: generic\nversion: nightly\n')
+    assert.equal(locateTargetVersion(archive), '4.5.6', '非 semver 跳过该来源，继续下一个候选')
+    fs.writeFileSync(path.join(resources, 'app-update.yml'), 'not: [valid yaml')
+    assert.equal(locateTargetVersion(archive), '4.5.6', '读不懂 yml 也不抛错，继续下一个候选')
+    fs.rmSync(path.join(resources, 'app'), { recursive: true, force: true })
+    assert.equal(locateTargetVersion(archive), null, '所有来源都不可用时返回 null')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('install 把 DSH 版本写进状态文件（从合成 resources 目录读到）', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-version-'))
+  const resources = path.join(root, 'resources')
+  fs.mkdirSync(resources, { recursive: true })
+  const archive = path.join(resources, 'app.asar')
+  fs.writeFileSync(archive, defaultArchive().buffer)
+  fs.writeFileSync(path.join(resources, 'app-update.yml'), 'provider: generic\nversion: 44.7.0\n')
+  try {
+    install({ archive, dir: root, running: false })
+    const statusFile = readJson(path.join(root, STATUS_FILE))
+    assert.equal(statusFile.targetVersion, '44.7.0')
+    assert.equal(status({ archive }).targetVersion, '44.7.0')
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
   }
 })

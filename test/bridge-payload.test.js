@@ -35,6 +35,9 @@ class FakeBrowserWindow {
     this.destroyed = false
     this.calls = []
     this.throwOnSetBounds = null
+    this.listeners = new Map()
+    this.waits = []
+    this.timeline = []
   }
 
   /**
@@ -50,6 +53,41 @@ class FakeBrowserWindow {
     return this.destroyed
   }
 
+  /** @returns {boolean} 是否全屏。 */
+  isFullScreen() {
+    return this.fullScreen
+  }
+
+  /** @returns {boolean} 是否最大化。 */
+  isMaximized() {
+    return this.maximized
+  }
+
+  /**
+   * 真实 Electron 在窗口状态真正切换后才发事件；这里用微任务模拟「稍后才到」。
+   *
+   * @param {string} event - 事件名。
+   * @param {() => void} listener - 一次性回调。
+   * @returns {void}
+   */
+  once(event, listener) {
+    this.waits.push(event)
+    const list = this.listeners.get(event) || []
+    list.push(listener)
+    this.listeners.set(event, list)
+  }
+
+  /**
+   * @param {string} event - 事件名。
+   * @returns {void}
+   */
+  emit(event) {
+    this.timeline.push(`emit:${event}`)
+    const list = this.listeners.get(event) || []
+    this.listeners.set(event, [])
+    for (const listener of list) listener()
+  }
+
   /** @returns {object} 当前外框副本。 */
   getBounds() {
     return { ...this.bounds }
@@ -61,6 +99,7 @@ class FakeBrowserWindow {
    */
   setBounds(next) {
     if (this.throwOnSetBounds) throw this.throwOnSetBounds
+    this.timeline.push('setBounds')
     this.calls.push(next)
     this.bounds = { ...next }
   }
@@ -70,12 +109,16 @@ class FakeBrowserWindow {
    * @returns {void}
    */
   setFullScreen(value) {
+    if (this.fullScreen === value) return
     this.fullScreen = value
+    if (value === false) queueMicrotask(() => this.emit('leave-full-screen'))
   }
 
   /** @returns {void} */
   unmaximize() {
+    if (!this.maximized) return
     this.maximized = false
+    queueMicrotask(() => this.emit('unmaximize'))
   }
 }
 
@@ -113,6 +156,12 @@ function loadMainSide(options = {}) {
   const sandbox = {
     ipcMain,
     BrowserWindow: FakeBrowserWindow,
+    setTimeout(fn, ms) {
+      const timer = setTimeout(fn, ms)
+      timer.unref?.()
+      return timer
+    },
+    clearTimeout,
     assertDesktopSender(eventArg, hostnames) {
       if (!eventArg.senderFrame) throw new Error('dsh desktop: rejected IPC without a sender frame')
       const url = new URL(eventArg.senderFrame.url)
@@ -211,16 +260,23 @@ test('main 载荷：超过工作区时钳制到工作区（不留负坐标）', 
   assert.deepEqual(plain(result.bounds), { x: 0, y: 0, width: 1920, height: 1080 })
 })
 
-test('main 载荷：低于窗口最小尺寸时抬到 520x600', async () => {
+test('main 载荷：低于下限时只抬到契约 MIN_SIDE(200)，不引入窗口最小尺寸假设', async () => {
   const main = loadMainSide()
   const result = await main.invoke({ width: 200, height: 200 })
-  assert.deepEqual(plain(result.bounds), { x: 700, y: 240, width: 520, height: 600 })
+  assert.deepEqual(plain(result.bounds), { x: 860, y: 440, width: 200, height: 200 })
+  assert.doesNotMatch(JSON.stringify(plain(result.bounds)), /520|600/)
+})
+
+test('main 载荷：workArea 偏移 + 超大请求时钳到工作区并居中', async () => {
+  const main = loadMainSide({ workArea: { x: 2560, y: 0, width: 2560, height: 1440 } })
+  const result = await main.invoke({ width: 16000, height: 16000 })
+  assert.deepEqual(plain(result.bounds), { x: 2560, y: 0, width: 2560, height: 1440 })
 })
 
 test('main 载荷：非整数、越界、缺字段都返回 invalid', async () => {
   const main = loadMainSide()
-  for (const args of [{ width: 1280.5, height: 720 }, { width: 199, height: 720 }, { width: 1280 }, {}, null]) {
-    const result = main.invoke(args)
+  for (const args of [{ width: 1280.5, height: 720 }, { width: 199, height: 720 }, { width: 20000, height: 720 }, { width: 1280 }, {}, null]) {
+    const result = await main.invoke(args)
     assert.equal(result.ok, false, JSON.stringify(args))
     assert.equal(result.code, 'invalid')
     assert.equal(typeof result.message, 'string')
@@ -228,17 +284,17 @@ test('main 载荷：非整数、越界、缺字段都返回 invalid', async () =
   assert.deepEqual(main.window.calls, [], '非法入参不能碰窗口')
 })
 
-test('main 载荷：非 dsh-app://app/ 发送方返回 not-desktop', () => {
+test('main 载荷：非 dsh-app://app/ 发送方返回 not-desktop', async () => {
   const rejected = loadMainSide({ senderUrl: 'https://example.com/' })
-  assert.deepEqual(plain(rejected.invoke({ width: 1280, height: 720 })), {
+  assert.deepEqual(plain(await rejected.invoke({ width: 1280, height: 720 })), {
     ok: false,
     code: 'not-desktop',
     message: 'bad sender',
   })
   const httpApp = loadMainSide({ senderUrl: 'http://app/' })
-  assert.equal(httpApp.invoke({ width: 1280, height: 720 }).code, 'not-desktop')
+  assert.equal((await httpApp.invoke({ width: 1280, height: 720 })).code, 'not-desktop')
   const subFrame = loadMainSide({ senderFrameIsMain: false })
-  assert.equal(subFrame.invoke({ width: 1280, height: 720 }).code, 'not-desktop')
+  assert.equal((await subFrame.invoke({ width: 1280, height: 720 })).code, 'not-desktop')
 })
 
 test('main 载荷：没有窗口 / 窗口已销毁返回 no-window', async () => {
@@ -250,15 +306,15 @@ test('main 载荷：没有窗口 / 窗口已销毁返回 no-window', async () =>
   assert.equal((await destroyed.invoke({ width: 1280, height: 720 })).code, 'no-window')
 })
 
-test('main 载荷：getState 请求返回 patched/desktop 与当前 bounds；无窗口时省略 bounds', () => {
+test('main 载荷：getState 请求返回 patched/desktop 与当前 bounds；无窗口时省略 bounds', async () => {
   const main = loadMainSide()
-  assert.deepEqual(plain(main.invoke({ get: 1 })), {
+  assert.deepEqual(plain(await main.invoke({ get: 1 })), {
     patched: true,
     desktop: true,
     bounds: { x: 10, y: 20, width: 1280, height: 820 },
   })
   const noWindow = loadMainSide({ window: null })
-  const state = noWindow.invoke({ get: 1 })
+  const state = await noWindow.invoke({ get: 1 })
   assert.deepEqual(plain(state), { patched: true, desktop: true })
   assert.equal('bounds' in state, false)
 })
@@ -280,6 +336,27 @@ test('main 载荷：先退全屏再钳制，即使窗口原本是全屏/最大�
   assert.equal(result.ok, true)
   assert.equal(main.window.fullScreen, false)
   assert.equal(main.window.maximized, false)
+})
+
+test('main 载荷：setBounds 必须等到 leave-full-screen / unmaximize 事件之后', async () => {
+  const main = loadMainSide()
+  main.window.fullScreen = true
+  main.window.maximized = true
+  const result = await main.invoke({ width: 1366, height: 768 })
+  assert.equal(result.ok, true)
+  assert.deepEqual(main.window.waits, ['leave-full-screen', 'unmaximize'])
+  assert.deepEqual(main.window.timeline, ['emit:leave-full-screen', 'emit:unmaximize', 'setBounds'])
+})
+
+test('main 载荷：窗口本来就不是全屏/最大化时不做任何等待', async () => {
+  const window = new FakeBrowserWindow()
+  window.fullScreen = false
+  window.maximized = false
+  const main = loadMainSide({ window })
+  const result = await main.invoke({ width: 1280, height: 720 })
+  assert.equal(result.ok, true)
+  assert.deepEqual(window.waits, [], '没有状态变化就不该注册 once 监听')
+  assert.deepEqual(window.timeline, ['setBounds'])
 })
 
 test('preload 载荷把命名空间挂到 window 上，形状符合契约', () => {

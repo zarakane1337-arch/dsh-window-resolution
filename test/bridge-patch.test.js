@@ -9,14 +9,18 @@ import { BridgeError } from '../lib/bridge/error.js'
 import {
   BLOCKS,
   PAYLOADS,
+  PAYLOAD_VERSION,
   TARGETS,
+  VERSION_MARK,
   applyBlocks,
   assertNoCollision,
   assertSymbols,
   buildPatch,
   commentRun,
+  detectPayloadVersion,
   findOccupiedMarker,
   isAscii,
+  locatePayloads,
   planAnchor,
   planBlocks,
   selectAnchor,
@@ -50,13 +54,23 @@ test('三个载荷全是 ASCII，且不含顶层重名标识符', () => {
     assert.equal(Buffer.byteLength(code, 'utf8'), code.length)
   }
   assert.match(PAYLOADS.mainHelpers, /^const RSZ=/)
+  assert.match(PAYLOADS.mainHelpers, /\/\*dsh-wrp:v2\*\//, '载荷必须带版本标记，供重注判定')
+  assert.equal(PAYLOAD_VERSION, 2)
+  assert.equal(VERSION_MARK, '/*dsh-wrp:v2*/')
+  assert.equal(detectPayloadVersion(PAYLOADS.mainHelpers), 2)
+  assert.equal(detectPayloadVersion('const RSZ={F:1};'), null, '旧载荷没有标记就应判为未知版本')
   assert.match(PAYLOADS.mainHandler, /dsh-desktop:window-bounds-set/)
   assert.match(PAYLOADS.mainHandler, /^ipcMain\.handle\("dsh-desktop:window-bounds-set"/)
-  assert.match(PAYLOADS.mainHandler, /setFullScreen\(false\)/)
-  assert.match(PAYLOADS.mainHandler, /unmaximize\(\)/)
+  assert.match(PAYLOADS.mainHandler, /w\.isFullScreen\(\)/)
+  assert.match(PAYLOADS.mainHandler, /w\.setFullScreen\(false\)/)
+  assert.match(PAYLOADS.mainHandler, /await Q\(c=>w\.once\("leave-full-screen",c\)\)/)
+  assert.match(PAYLOADS.mainHandler, /w\.isMaximized\(\)/)
+  assert.match(PAYLOADS.mainHandler, /w\.unmaximize\(\)/)
+  assert.match(PAYLOADS.mainHandler, /await Q\(c=>w\.once\("unmaximize",c\)\)/)
+  assert.match(PAYLOADS.mainHandler, /setTimeout\(r,400\)/, '等待窗口状态变化必须有 400ms 兜底')
   assert.match(PAYLOADS.mainHandler, /getDisplayMatching/)
-  assert.match(PAYLOADS.mainHandler, /520/)
-  assert.match(PAYLOADS.mainHandler, /600/)
+  assert.match(PAYLOADS.mainHandler, /Math\.max\(200,Math\.min\(16384,/, '钳制必须用工约 MIN_SIDE/MAX_SIDE')
+  assert.doesNotMatch(PAYLOADS.mainHandler, /520|600/, '不得再固化 DSH 窗口最小尺寸')
   assert.match(PAYLOADS.mainHandler, /setBounds\(/)
   assert.match(PAYLOADS.preloadBridge, /exposeInMainWorld\("dshWindowResolution"/)
   assert.match(PAYLOADS.preloadBridge, /v:1/)
@@ -249,4 +263,23 @@ test('buildPatch 在缺锚点的归档上失败且不产生任何写入', () => 
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }
+})
+
+test('locatePayloads 从已注入源码里找回三块的位置与载荷长度', () => {
+  const planned = planBlocks({ sources: { main: mainEntry(), preload: preloadEntry() } })
+  const sources = {
+    main: applyBlocks(mainEntry(), planned.main),
+    preload: applyBlocks(preloadEntry(), planned.preload),
+  }
+  const located = locatePayloads(sources)
+  assert.deepEqual(located.map((block) => block.id), ['main-helpers', 'main-handler', 'preload-bridge'])
+  for (const block of located) {
+    const text = block.entry === '/lib/main.js' ? sources.main : sources.preload
+    const bytes = Buffer.from(text, 'utf8').subarray(block.byteStart, block.byteStart + block.codeLength)
+    assert.equal(bytes.toString('ascii'), PAYLOADS[block.id.replace(/-(\w)/g, (_, c) => c.toUpperCase())], block.id)
+  }
+})
+
+test('locatePayloads 在未注入源码上返回空数组，不抛错', () => {
+  assert.deepEqual(locatePayloads({ main: mainEntry(), preload: preloadEntry() }), [])
 })

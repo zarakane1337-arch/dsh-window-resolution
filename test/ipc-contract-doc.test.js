@@ -5,6 +5,8 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
 import { CHANNEL, CONTRACT_VERSION, ERROR_CODES, MAX_SIDE, MIN_SIDE, NAMESPACE } from '../lib/contract.js'
+import { BRIDGE_VERSION } from '../lib/bridge/install.js'
+import { PAYLOAD_VERSION, VERSION_MARK } from '../lib/bridge/patch.js'
 
 /**
  * 仓库根（test/ 的上一级）。
@@ -74,4 +76,29 @@ test('契约文档写的版本与上下限来自同一份常量', () => {
   assert.ok(text.includes(String(MIN_SIDE)), `必须写明下限 ${MIN_SIDE}`)
   assert.ok(text.includes(String(MAX_SIDE)), `必须写明上限 ${MAX_SIDE}`)
   assert.ok(text.includes(NAMESPACE))
+})
+
+test('版本与兼容一节写清三个独立版本常量与重注规则', () => {
+  const sectionText = section(contractDoc(), '版本与兼容')
+  const row = (name, value) => `\`${name}\` | \`${value}\``
+  assert.ok(sectionText.includes(row('CONTRACT_VERSION', CONTRACT_VERSION)), '契约版本')
+  assert.ok(sectionText.includes(row('BRIDGE_VERSION', BRIDGE_VERSION)), '边车格式版本')
+  assert.ok(sectionText.includes(row('PAYLOAD_VERSION', PAYLOAD_VERSION)), '载荷版本')
+  assert.ok(sectionText.includes(VERSION_MARK), '必须写明当前载荷标记')
+  assert.match(sectionText, /dsh-wrp:v\(\\d\+\)/, '必须写明标记解析用的正则')
+  for (const token of ['reinstalled: true', 'needsReinstall: true', 'no-state', 'payloadVersion']) {
+    assert.ok(sectionText.includes(token), `必须写明 ${token}`)
+  }
+})
+
+test('注入文档的 CLI 退出码、状态文件字段与自检命令和实现一致', () => {
+  const text = fs.readFileSync(path.join(ROOT, 'docs', 'asar-injection.md'), 'utf8')
+  for (const field of ['ok', 'installed', 'version', 'payloadVersion', 'targetVersion', 'changed', 'at']) {
+    assert.ok(text.includes(`| \`${field}\` |`), `状态文件字段表缺 ${field}`)
+  }
+  assert.ok(text.includes('self-heal'), 'CLI 一节必须包含 self-heal')
+  assert.match(text, /退出码：`0`[^]*`2`/, '退出码说明必须覆盖 0/1/2')
+  assert.match(text, /status` 对 `ok:false`/, '必须写明 status 的 ok:false 用退出码 2')
+  assert.ok(text.includes('restore --force'), '必须写明 restore --force')
+  assert.ok(text.includes('reinstalled: true'), '必须写明重注标记')
 })
