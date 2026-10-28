@@ -10,6 +10,7 @@ import {
   acquireLock,
   check,
   detect,
+  detectRunning,
   ensurePatched,
   install,
   restore,
@@ -272,6 +273,16 @@ test('归档不可写时给 not-writable，且一个字节都不改', { skip: pr
     fs.chmodSync(space.archive, 0o644)
     assert.deepEqual(fs.readFileSync(space.archive), before)
     assert.equal(fs.existsSync(path.join(space.dir, RECOVERY_FILE)), false)
+  } finally {
+    space.dispose()
+  }
+})
+
+test('detectRunning 不抛错：从归档位置反推进程名，判不出来就返回 null', () => {
+  const space = workspace()
+  try {
+    const value = detectRunning(space.archive)
+    assert.ok(value === null || typeof value === 'boolean', '只能是 true/false/null')
   } finally {
     space.dispose()
   }
