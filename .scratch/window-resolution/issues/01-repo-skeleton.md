@@ -4,7 +4,7 @@
 
 **Blocked by:** 无（可立即开始）
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 - [ ] `package.json` 声明 `dsh.manifestVersion`、`dsh.bundle.patch`、`dsh.client{platform:"web", immediately:true, inject:[...]}`，`type: "module"`，MIT 许可
 - [ ] `cordis.patch.yml` 含 `insert` 条目（id/name 与包名一致）
@@ -14,3 +14,6 @@
 - [ ] locale 骨架（zh-CN/en 资源，含分区标题与状态文案 key）
 - [ ] 构建脚本从源码产出 `lib/` 产物；类型检查/构建通过
 - [ ] 仓库含 `.gitignore`（node_modules 等）、LICENSE
+
+## Answer
+实现于 `ticket/01-repo-skeleton`（见集成提交 37d636e）。验收标准达成（构建/类型检查项按"纯 ESM 无构建"superseded：lib/*.js 即源码，46 个 node --test 用例覆盖）。验证：node --test --test-isolation=none → 46 pass。
