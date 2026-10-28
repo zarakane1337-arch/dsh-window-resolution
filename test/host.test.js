@@ -1,8 +1,12 @@
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import test from 'node:test'
 
-import apply, { apply as namedApply, inject, name } from '../lib/index.js'
+import apply, { apply as namedApply, inject, name, selfHealOnLaunch } from '../lib/index.js'
 import { DEFAULT_CONFIG } from '../lib/config.js'
+import { defaultArchive } from './helpers/asar-fixture.js'
 import { createContext } from './helpers/client-harness.js'
 
 test('宿主入口声明插件名与空的注入列表', () => {
@@ -51,4 +55,51 @@ test('logger 自己抛错也不影响插件加载', () => {
     },
   }
   assert.doesNotThrow(() => apply(ctx, { mode: 'off' }))
+})
+
+test('自愈在纯 Node 进程里主动跳过：不在测试/CLI 里碰真实 app.asar', () => {
+  const outcome = selfHealOnLaunch()
+  assert.equal(outcome.ok, true)
+  assert.equal(outcome.action, 'skipped')
+})
+
+test('自愈（force）在合成归档上真的装一次，第二次报 already', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-host-'))
+  const archive = path.join(dir, 'app.asar')
+  const original = defaultArchive().buffer
+  fs.writeFileSync(archive, original)
+  const profile = path.join(dir, 'profile')
+  try {
+    const first = selfHealOnLaunch({ force: true, archive, dir: profile, running: false })
+    assert.equal(first.ok, true)
+    assert.equal(first.action, 'installed')
+    assert.notDeepEqual(fs.readFileSync(archive), original)
+    const statusFile = JSON.parse(fs.readFileSync(path.join(profile, '.dsh-window-resolution.json'), 'utf8'))
+    assert.equal(statusFile.installed, true)
+    assert.equal(statusFile.changed, true)
+
+    const second = selfHealOnLaunch({ force: true, archive, dir: profile, running: false })
+    assert.equal(second.action, 'already')
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('自愈失败（锚点被占）只落状态，不抛、不改归档', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-host-broken-'))
+  const archive = path.join(dir, 'app.asar')
+  const original = defaultArchive({ main: { occupied: 'handler' } }).buffer
+  fs.writeFileSync(archive, original)
+  const profile = path.join(dir, 'profile')
+  try {
+    const outcome = selfHealOnLaunch({ force: true, archive, dir: profile, running: false })
+    assert.equal(outcome.ok, false)
+    assert.equal(outcome.action, 'failed')
+    assert.deepEqual(fs.readFileSync(archive), original, '失败时一个字节都不许改')
+    const statusFile = JSON.parse(fs.readFileSync(path.join(profile, '.dsh-window-resolution.json'), 'utf8'))
+    assert.equal(statusFile.ok, false)
+    assert.equal(statusFile.error.code, 'anchor-missing')
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
 })
