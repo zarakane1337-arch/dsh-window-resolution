@@ -8,7 +8,7 @@
 
 为 DeepSeek Harness（下称 DSH）桌面端提供可自定义的**窗口分辨率**：在设置页选择**预设分辨率**或输入**自定义分辨率**，**即改即用**，并在每次 DSH 启动时**强制应用**。插件同时支持「关闭」——选择关闭后，插件不再调整主窗口。
 
-> 术语遵循仓库根 [`GLOSSARY.md`](GLOSSARY.md)：窗口分辨率指主窗口**外框**宽×高（逻辑像素），不含 DPI 缩放与全屏渲染差异。
+> 窗口分辨率指主窗口**外框**宽×高（逻辑像素），不含 DPI 缩放与全屏渲染差异。
 
 ### 功能
 
@@ -136,25 +136,9 @@ node lib/bridge-cli.mjs check    # 期望「自洽：是」
 - 归档路径可以放在命令后；也可用环境变量 `DSH_WINDOW_RESOLUTION_ASAR`（或 `DSH_ASAR`）覆盖自动定位。
 - 退出码约定：`0` 成功/已注入，`1` 失败，`2` 未注入（`status`/`check`）或无事可做（`restore`/`uninstall`）。
 
-### 截图
-
-以下截图需在**真实运行**的桌面端补拍（当前仓库还没有图片，先用注释占位，不会渲染出破图）：
-
-- `docs/images/settings-window.png`：设置页的「窗口分辨率」分区，建议约 1200×800，截到分区标题、预设列表与状态行。
-- `docs/images/startup-applied.png`：配置 1920×1080 后重启 DSH 的整窗效果（可见窗口边框与实际尺寸），建议约 1600×900。
-
-<!-- 待补截图（T05 真实运行后放入 docs/images/，不要伪造）：
-![设置页的窗口分辨率分区](docs/images/settings-window.png)
-![启动后按配置强制应用的窗口](docs/images/startup-applied.png)
--->
-
 ### 文档
 
-- [`docs/asar-injection.md`](docs/asar-injection.md)：注入面、锚点、回滚边车与 CLI 细节
-- [`docs/ipc-contract.md`](docs/ipc-contract.md)：`window.dshWindowResolution` IPC 契约与错误码
-- [`docs/settings-ui.md`](docs/settings-ui.md)：设置页、存储键与降级文案
-- [`docs/adr/0001-asar-injection-window-bounds-route.md`](docs/adr/0001-asar-injection-window-bounds-route.md)：路线决策
-- [`GLOSSARY.md`](GLOSSARY.md)：术语表；[`CHANGELOG.md`](CHANGELOG.md)：版本记录
+- [`CHANGELOG.md`](CHANGELOG.md)：版本记录
 
 ### 开发
 
@@ -177,7 +161,7 @@ npm pack --dry-run   # 核对发布物清单
 
 Give the DeepSeek Harness (DSH) desktop app a custom **window resolution**: choose a **preset** or enter a **custom resolution** in Settings and it applies immediately, then is **force-applied** on every DSH launch. An "Off" option leaves the window alone.
 
-> Terminology follows [`GLOSSARY.md`](GLOSSARY.md): window resolution is the main window's **outer frame** width × height in logical pixels, independent of DPI scaling and fullscreen rendering differences.
+> Window resolution is the main window's **outer frame** width × height in logical pixels, independent of DPI scaling and fullscreen rendering differences.
 
 ### Features
 
@@ -270,25 +254,9 @@ Run `node lib/bridge-cli.mjs <command> [app.asar] [--dry-run] [--force]` from th
 
 Pass an archive path after the command, or override auto-detection with `DSH_WINDOW_RESOLUTION_ASAR` (or `DSH_ASAR`). Exit codes: `0` success/injected, `1` failed, `2` not injected (`status`/`check`) or nothing to do (`restore`/`uninstall`).
 
-### Screenshots
-
-These must be captured from a **real** desktop run (no images are committed yet; the references below are commented out so nothing renders as a broken image):
-
-- `docs/images/settings-window.png`: the "Window Resolution" section in Settings, roughly 1200×800.
-- `docs/images/startup-applied.png`: the whole window after restarting with 1920×1080 configured, roughly 1600×900.
-
-<!-- TODO screenshots (capture from a real run, then place under docs/images/):
-![Window Resolution section in Settings](docs/images/settings-window.png)
-![Window after force-apply at startup](docs/images/startup-applied.png)
--->
-
 ### Docs
 
-- [`docs/asar-injection.md`](docs/asar-injection.md): injection surface, anchors, rollback sidecar, CLI details
-- [`docs/ipc-contract.md`](docs/ipc-contract.md): `window.dshWindowResolution` IPC contract and error codes
-- [`docs/settings-ui.md`](docs/settings-ui.md): settings section, storage keys, degraded-state copy
-- [`docs/adr/0001-asar-injection-window-bounds-route.md`](docs/adr/0001-asar-injection-window-bounds-route.md): route decision
-- [`GLOSSARY.md`](GLOSSARY.md): terminology; [`CHANGELOG.md`](CHANGELOG.md): release history
+- [`CHANGELOG.md`](CHANGELOG.md): release history
 
 ### Development
 

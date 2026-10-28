@@ -83,16 +83,6 @@ test('README 覆盖预设、强制应用、两次重启、共存、降级与退�
   assert.match(readme, /退出码/, 'CLI 速查必须解释退出码')
 })
 
-test('README 的截图是注释占位，不会渲染出破图', () => {
-  const raw = read('README.md')
-  assert.match(raw, /docs\/images\/settings-window\.png/, '预留设置页截图引用')
-  assert.match(raw, /docs\/images\/startup-applied\.png/, '预留启动后截图引用')
-  assert.match(raw, /待补/, '截图区必须写明待补（运行后放入）')
-  const body = prose(raw)
-  assert.doesNotMatch(body, /!\[[^\]]*\]\(docs\/images\//, '截图引用必须留在 HTML 注释里')
-  assert.doesNotMatch(body, /<img[^>]+docs\/images\//i, '不能有指向缺失图片的 <img>')
-})
-
 test('CHANGELOG 以 package.json 的版本号开篇，并记录新增/修复/已知限制', () => {
   const pkg = JSON.parse(read('package.json'))
   const changelog = read('CHANGELOG.md')
