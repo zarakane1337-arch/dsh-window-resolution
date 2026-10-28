@@ -18,7 +18,7 @@ import {
   readEntry,
   sha256,
 } from '../lib/bridge/asar.js'
-import { buildArchive, mainEntry, preloadEntry } from './helpers/asar-fixture.js'
+import { buildArchive, defaultArchive, mainEntry, preloadEntry } from './helpers/asar-fixture.js'
 
 /**
  * 把一个 asar 头部 JSON 装成 `[16 字节固定头][JSON]` 的 Buffer。
@@ -241,6 +241,28 @@ test('locateArchive 按 explicit → 环境变量 → argv → execPath → LOCA
       /app\.asar/,
     )
     fs.rmSync(empty, { recursive: true, force: true })
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('patchHeaderHash 报出的偏移能直接定位到新哈希（restore 依赖这个基准）', () => {
+  const archive = defaultArchive()
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-offsets-'))
+  const file = path.join(dir, 'app.asar')
+  fs.writeFileSync(file, archive.buffer)
+  try {
+  const loaded = readArchive(file)
+  const meta = findEntry(loaded.header, '/lib/main.js')
+  const oldHash = meta.integrity.hash
+  const newHash = sha256(Buffer.from('changed bytes'))
+  const patched = patchHeaderHash(loaded.head, oldHash, newHash, meta)
+  assert.equal(patched.offsets.length, 2)
+  assert.deepEqual([...patched.offsets].sort((a, b) => a - b), patched.offsets, '偏移必须升序')
+  for (const offset of patched.offsets) {
+    assert.equal(patched.buffer.subarray(offset, offset + 64).toString('latin1'), newHash)
+    assert.equal(loaded.head.subarray(offset, offset + 64).toString('latin1'), oldHash)
+  }
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }

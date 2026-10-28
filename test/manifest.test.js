@@ -81,7 +81,9 @@ test('lib/ 只含纯 JavaScript 源码，没有类型检查或产物目录', () 
   const files = entries.filter((e) => e.isFile()).map((e) => e.name)
   assert.ok(files.length > 0, 'lib/ 不能为空')
   for (const file of files) {
-    assert.match(file, /\.js$/, `lib/${file} 必须是 .js（无 TypeScript、无构建产物）`)
+    // `.mjs` 只允许给可直接执行的 CLI 入口（ticket 02 指定），其余一律 `.js`。
+    const allowed = file === 'bridge-cli.mjs' ? /\.mjs$/ : /\.js$/
+    assert.match(file, allowed, `lib/${file} 必须是 .js（无 TypeScript、无构建产物）`)
   }
   assert.equal(fs.existsSync(path.join(ROOT, 'tsconfig.json')), false)
   assert.equal(fs.existsSync(path.join(ROOT, 'lib', 'dist')), false)
