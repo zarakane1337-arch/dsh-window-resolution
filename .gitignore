@@ -3,3 +3,6 @@ node_modules/
 *.log
 .worktrees/
 .scratch-*
+
+_probe/
+.worktrees/
