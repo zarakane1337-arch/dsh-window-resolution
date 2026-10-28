@@ -76,13 +76,12 @@ test('install → status → restore：一条龙的退出码与字节还原', ()
   }
 })
 
-test('status 在 dwc 占用了首选锚点时自动退到备用候选，并明说检测到 dwc', () => {
-  const space = workspace({ main: { occupied: 'helpers' } })
+test('status 在首选锚点装不下载荷时自动退到备用候选', () => {
+  const space = workspace({ main: { shortHelpers: true } })
   try {
     const { code, lines } = run(['status', space.archive], { dir: space.dir })
     assert.equal(code, 2)
     const text = lines.join('\n')
-    assert.match(text, /dwc：检测到/)
     assert.match(text, /main-helpers .* 锚点 p3-harness-home/)
   } finally {
     space.dispose()

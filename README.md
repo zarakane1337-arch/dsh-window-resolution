@@ -19,14 +19,6 @@
 - **每次启动强制应用**：按保存的配置，先取消最大化/全屏（等待窗口状态迁移，400ms 兜底超时），再按当前屏幕**可用工作区钳制**目标尺寸，最后在当前屏幕居中。启动瞬间窗口可能先按上次状态出现，随后 snap 到设定尺寸（一次轻微闪烁）。
 - 配置保存在当前 profile 的 `localStorage`；改动会广播到同页其他分区，宿主启动时按同一份配置应用。
 
-### 与 `dsh-window-control` 共存
-
-本插件可以与 `dsh-window-control`（下称 dwc）同时安装：
-
-- 两者向 `app.asar` 注入的是**各自独立**的载荷，锚点用候选数组，写入前校验目标符号；本插件会跳过 dwc 已占用的字节区间（`DWC=[[` / `dshWindowControl`），绝不会覆盖 dwc 的代码。
-- 本插件使用**自己的**回滚边车（`.dsh-window-resolution.restore.json`），**绝不动** `app.asar.orig`——那是 dwc 的备份，用它还原会连带抹掉 dwc 的注入。
-- 若两个插件都想控制窗口尺寸，实际生效的是**后应用者**：dwc 在启动早期介入，本插件在页面加载后强制应用，因此启动尺寸以本插件为准；随后手动调整窗口不受影响。
-
 ### 安装
 
 #### 前置条件
@@ -51,7 +43,7 @@ dsh plugin add C:/path/to/dsh-window-resolution  # 未发布时：本地绝对�
 在插件目录（本地路径安装时就是仓库根；从 profile 安装时是 `~/.dsh/profiles/<profile>/node_modules/dsh-window-resolution`，`link:` 安装则指向源目录）执行：
 
 ```bash
-node lib/bridge-cli.mjs status              # 只读：归档路径、注入状态、dwc 共存、锚点与预算
+node lib/bridge-cli.mjs status              # 只读：归档路径、注入状态、锚点与预算
 node lib/bridge-cli.mjs install --dry-run   # 只打印偏移与字节预算，不落盘
 node lib/bridge-cli.mjs install             # 真注入（建议先退出 DSH）
 ```
@@ -126,10 +118,10 @@ node lib/bridge-cli.mjs check    # 期望「自洽：是」
 
 | 命令 | 作用 | 退出码 |
 | --- | --- | --- |
-| `status` | 只读：归档路径、DSH/载荷版本、注入状态、dwc 共存、锚点与字节预算 | `0` 已注入；`2` 未注入或归档不一致；`1` 失败 |
+| `status` | 只读：归档路径、DSH/载荷版本、注入状态、锚点与字节预算 | `0` 已注入；`2` 未注入或归档不一致；`1` 失败 |
 | `check` | 只读：校验归档自洽（哈希、半注入）；未注入时报告可否安装 | `0` 已注入且自洽；`2` 未注入；`1` 发现问题 |
 | `install` | 注入；载荷过期时先还原再重注；`--dry-run` 只报告不落盘；`--force` 强制重注 | `0` 成功/已是最新；`1` 失败 |
-| `restore` | 用回滚边车精确还原；`--force` 跳过哈希校验（不碰 dwc 的 `app.asar.orig`） | `0` 已还原；`2` 未注入无事可做；`1` 失败 |
+| `restore` | 用回滚边车精确还原；`--force` 跳过哈希校验（不碰 `app.asar.orig`） | `0` 已还原；`2` 未注入无事可做；`1` 失败 |
 | `uninstall` | 先 `restore`，再删状态文件 | `0` 已还原；`2` 未注入无事可做；`1` 还原失败 |
 | `self-heal` | 启动自检：未注入或载荷过期就注入，已最新只更新状态文件 | `0` 通过；`1` 失败 |
 
@@ -171,14 +163,6 @@ Give the DeepSeek Harness (DSH) desktop app a custom **window resolution**: choo
 - **Immediate apply**: selecting or typing a size takes effect at once, and the actual bounds read back from the main process are echoed — a **clamped** result is what you see.
 - **Force-apply on every launch**: leaving fullscreen and un-maximizing first (waiting for the window state transition, with a 400 ms fallback timeout), then **clamping** to the current screen's work area and centering on that screen. The window may appear at its previous size for an instant before snapping (one brief flicker).
 
-### Coexistence with `dsh-window-control`
-
-This plugin can be installed alongside `dsh-window-control` (dwc):
-
-- Both inject **separate** equal-length payloads. Anchors are tried from a candidate list and validated against target symbols before writing; this plugin skips the byte ranges dwc already owns (`DWC=[[` / `dshWindowControl`) and never overwrites dwc's code.
-- This plugin uses **its own** rollback sidecar (`.dsh-window-resolution.restore.json`) and **never** touches `app.asar.orig` — that is dwc's backup, and restoring from it would also wipe dwc's injection.
-- If both plugins want to control the window size, the last one to run wins: dwc acts early in startup and this plugin force-applies after the page loads, so the launch size comes from this plugin.
-
 ### Installation
 
 **Requirements:** the DSH desktop app (Electron); write access to `resources/app.asar` (on Windows it usually lives under `Program Files`, so the first injection may need elevation); Node.js ≥ 20 for the CLI.
@@ -195,7 +179,7 @@ Or edit `~/.dsh/profiles/<profile>/package.json` directly: add `"dsh-window-reso
 **2. Inject the window channel.** From the plugin directory (the repo root for a local install, or `~/.dsh/profiles/<profile>/node_modules/dsh-window-resolution`):
 
 ```bash
-node lib/bridge-cli.mjs status              # read-only: archive, injection state, dwc, anchors
+node lib/bridge-cli.mjs status              # read-only: archive, injection state, anchors
 node lib/bridge-cli.mjs install --dry-run   # print offsets and byte budget, write nothing
 node lib/bridge-cli.mjs install             # inject (quit DSH first)
 ```
@@ -245,10 +229,10 @@ Run `node lib/bridge-cli.mjs <command> [app.asar] [--dry-run] [--force]` from th
 
 | Command | What it does | Exit codes |
 | --- | --- | --- |
-| `status` | Read-only: archive, DSH/payload versions, injection state, dwc coexistence, anchors and byte budget | `0` injected; `2` not injected or inconsistent; `1` failed |
+| `status` | Read-only: archive, DSH/payload versions, injection state, anchors and byte budget | `0` injected; `2` not injected or inconsistent; `1` failed |
 | `check` | Read-only: archive consistency (hashes, half-patches); reports installability when not injected | `0` injected and consistent; `2` not injected; `1` problems found |
 | `install` | Inject; restores and re-injects when the payload is stale; `--dry-run` reports only; `--force` forces a re-inject | `0` success/up to date; `1` failed |
-| `restore` | Restore exact bytes from the rollback sidecar; `--force` skips hash checks (never touches dwc's `app.asar.orig`) | `0` restored; `2` nothing to do; `1` failed |
+| `restore` | Restore exact bytes from the rollback sidecar; `--force` skips hash checks (never touches `app.asar.orig`) | `0` restored; `2` nothing to do; `1` failed |
 | `uninstall` | `restore` first, then delete the state file | `0` restored; `2` nothing to do; `1` restore failed |
 | `self-heal` | Startup self-check: inject when missing/stale, otherwise refresh the state file only | `0` passed; `1` failed |
 

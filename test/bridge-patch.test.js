@@ -18,7 +18,6 @@ import {
   buildPatch,
   commentRun,
   detectPayloadVersion,
-  findOccupiedMarker,
   isAscii,
   locatePayloads,
   planAnchor,
@@ -140,32 +139,10 @@ test('planAnchor 拒绝非 ASCII 载荷', () => {
   )
 })
 
-test('planAnchor 拒绝压到别的插件注入区的候选（dwc 标记在注释内）', () => {
-  const source = mainEntry({ occupied: 'handler' })
-  const index = source.indexOf(FIXTURE_ANCHORS.mainHandler)
-  assert.ok(index >= 0)
-  const error = throwsBridge(
-    () => planAnchor(source, { id: 'handler', text: FIXTURE_ANCHORS.mainHandler }, PAYLOADS.mainHandler, TARGETS.main.markers),
-    'anchor-occupied',
-  )
-  assert.match(error.message, /DWC=\[\[/)
-})
-
-test('findOccupiedMarker 只报区间内的标记，区间外的不算', () => {
-  const source = 'const P=1; /* DWC=[[ */\n\n/** keeper */\n'
-  const range = { byteStart: source.indexOf('/** keeper'), byteLength: 13 }
-  assert.equal(findOccupiedMarker(source, range, TARGETS.main.markers), null)
-  const overlapping = { byteStart: 0, byteLength: source.length }
-  assert.deepEqual(findOccupiedMarker(source, overlapping, TARGETS.main.markers), {
-    marker: 'DWC=[[',
-    byteOffset: 14,
-  })
-})
-
 test('selectAnchor 主候选缺失时退到第二个候选', () => {
   const source = mainEntry({ omit: ['mainHelpers'] })
   const spec = BLOCKS.find((block) => block.id === 'main-helpers')
-  const planned = selectAnchor(source, spec, TARGETS.main.markers)
+  const planned = selectAnchor(source, spec)
   assert.equal(planned.anchor, 'p3-harness-home')
   assert.equal(planned.byteLength >= spec.code.length, true)
 })
@@ -173,7 +150,7 @@ test('selectAnchor 主候选缺失时退到第二个候选', () => {
 test('selectAnchor 全部候选都不可用时报出每个候选的原因', () => {
   const source = mainEntry({ omit: ['mainHelpers', 'mainHelpersFallback'] })
   const spec = BLOCKS.find((block) => block.id === 'main-helpers')
-  const error = throwsBridge(() => selectAnchor(source, spec, TARGETS.main.markers), 'anchor-missing')
+  const error = throwsBridge(() => selectAnchor(source, spec), 'anchor-missing')
   assert.equal(error.details.reasons.length, 2)
   assert.match(error.details.reasons[0], /锚点不存在/)
 })

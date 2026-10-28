@@ -46,7 +46,6 @@ test('真实归档：status 只读报告与当前注入状态一致（已注入�
   const before = fileHash(ASAR)
   const report = status({ archive: ASAR })
   assert.equal(report.installed, detection.installed, 'status.installed 必须与 detect 一致')
-  assert.equal(report.dwc, true, '本机装了 dwc，必须能识别出来')
   assert.equal(typeof report.targetVersion === 'string' || report.targetVersion === null, true)
 
   if (detection.installed) {
@@ -97,12 +96,10 @@ test('真实归档：install --dry-run 只读；已注入时报 already/过期�
   assert.equal(fileHash(ASAR), before, '干跑绝不能写盘')
 })
 
-test('真实归档：载荷区与 dwc 标记共存，谁都不盖住谁', { skip }, () => {
+test('真实归档：载荷区定位准确，等长替换不改变条目长度', { skip }, () => {
   const loaded = readArchive(ASAR)
   const mainText = readEntry(loaded, findEntry(loaded.header, '/lib/main.js')).toString('utf8')
   const preloadText = readEntry(loaded, findEntry(loaded.header, '/lib/preload-app.cjs')).toString('utf8')
-  const dwcAt = mainText.indexOf('DWC=[[')
-  assert.equal(dwcAt >= 0, true, '真实 main.js 里应有 dwc 标记')
 
   if (detection.installed) {
     const located = locatePayloads({ main: mainText, preload: preloadText })
@@ -111,33 +108,21 @@ test('真实归档：载荷区与 dwc 标记共存，谁都不盖住谁', { skip
       const source = block.entry === '/lib/main.js' ? mainText : preloadText
       const start = Buffer.from(source, 'utf8').subarray(block.byteStart, block.byteStart + block.codeLength)
       assert.equal(isAscii(start.toString('latin1')), true, `${block.id} 已注入区必须是 ASCII`)
-      if (block.entry === '/lib/main.js') {
-        const covered = dwcAt >= block.byteStart && dwcAt < block.byteStart + block.codeLength
-        assert.equal(covered, false, `${block.id} 盖住了 dwc 注入区`)
-      }
     }
     assert.match(mainText, /dsh-desktop:window-bounds-set/)
     assert.match(preloadText, /dshWindowResolution/)
-    assert.match(preloadText, /dshWindowControl/, 'preload 里 dwc 的桥必须还在')
     assert.equal(check({ archive: ASAR }).consistent, true)
   } else {
     const built = buildPatch(loaded)
-    for (const patch of built.blocks) {
-      if (patch.target !== 'main') continue
-      const end = patch.byteStart + patch.byteLength
-      assert.equal(dwcAt >= 0 && dwcAt >= patch.byteStart && dwcAt < end, false, `${patch.id} 盖住了 dwc 注入区`)
-    }
     for (const block of built.blocks) {
       assert.equal(isAscii(block.original.toString('latin1')), true, `${block.id} 的原始区块不是 ASCII`)
       assert.equal(block.codeLength <= block.byteLength, true)
     }
     const mainPatched = built.writes.find((write) => write.label === '/lib/main.js').buffer.toString('utf8')
     const preloadPatched = built.writes.find((write) => write.label === '/lib/preload-app.cjs').buffer.toString('utf8')
-    assert.equal(mainPatched.includes('DWC=[['), true)
     assert.equal(mainPatched.includes('dsh-desktop:window-bounds-set'), true)
     assert.equal(mainPatched.length, mainText.length, '等长替换：字符数不变（全 ASCII 区域）')
     assert.equal(Buffer.byteLength(preloadPatched, 'utf8'), built.targets.preload.size)
-    assert.equal(preloadPatched.includes('dshWindowControl'), true, 'preload 里 dwc 的桥必须还在')
     assert.equal(preloadPatched.includes('dshWindowResolution'), true)
   }
 })

@@ -12,8 +12,8 @@
 - 配置持久化到 profile 的 `localStorage`（`dsh-window-resolution:config`），变更通过 `dsh-window-resolution:changed` 广播；非法值回落到默认配置（关闭 + 1920×1080），不静默改成用户没选过的尺寸。
 - Host 半体对 `resources/app.asar` 的 `lib/main.js` 与 `lib/preload-app.cjs` 做等长 ASCII 注入，打开 `dsh-desktop:window-bounds-set` IPC（`assertDesktopSender` + `BrowserWindow.setBounds`）；重算条目 `integrity.hash`，不改归档布局。
 - **强制应用**：启动时按配置先退出全屏/取消最大化（等待窗口状态迁移，400ms 兜底超时），按当前屏幕工作区**钳制**目标尺寸，再居中并回读实际 bounds；接受一次轻微闪烁。
-- 注入锚点用候选数组，写入前校验目标符号与 ASCII/等长/字节预算，失败即中止不写入；自动避开 `dsh-window-control` 占用的字节区间。
-- 回滚边车 `.dsh-window-resolution.restore.json` 记录被覆盖字节与原/新哈希；`restore` 精确还原，`uninstall` 强制先还原再删状态文件；**绝不使用** `app.asar.orig`（dwc 的备份）。
+- 注入锚点用候选数组，写入前校验目标符号与 ASCII/等长/字节预算，失败即中止不写入。
+- 回滚边车 `.dsh-window-resolution.restore.json` 记录被覆盖字节与原/新哈希；`restore` 精确还原，`uninstall` 强制先还原再删状态文件；**绝不使用** `app.asar.orig`。
 - 启动自检：未注入就注入，载荷版本过期就还原后重注，失败只写状态文件、不阻塞 DSH 启动。
 - CLI `node lib/bridge-cli.mjs`：`status`、`check`、`install`（`--dry-run`/`--force`）、`restore`（`--force`）、`uninstall`、`self-heal`。
 - 文档：`docs/asar-injection.md`（注入面与回滚）、`docs/ipc-contract.md`（IPC 契约）、`docs/settings-ui.md`（设置页与存储键）、ADR 0001、中英双语 README。
@@ -36,5 +36,5 @@
 - Windows 下 `app.asar` 位于 `Program Files` 时，首次注入可能需要管理员权限（`not-writable`）。
 - 启动应用发生在页面加载之后，窗口会先按上次尺寸出现再 snap 到设定尺寸（一次轻微闪烁）。
 - 只调整主窗口**外框**尺寸，不改 DPI/系统缩放，不控制辅助窗口，不支持多窗口或 per-project 配置。
-- 与 `dsh-window-control` 同时控制窗口时，后应用者生效；本插件在启动时最后应用。
+
 - 浏览器标签页 / 非 Electron 环境下通道缺席，插件静默降级为静态提示，无法在该环境调整窗口。

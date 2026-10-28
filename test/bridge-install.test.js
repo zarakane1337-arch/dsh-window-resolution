@@ -55,30 +55,16 @@ function throwsBridge(fn, code) {
   return caught
 }
 
-test('status 在未注入的合成归档上给出锚点、字节预算与 dwc 情况', () => {
+test('status 在未注入的合成归档上给出锚点与字节预算', () => {
   const space = workspace()
   try {
     const report = status({ archive: space.archive })
     assert.equal(report.installed, false)
-    assert.equal(report.dwc, false)
     assert.equal(report.plan.ok, true)
     assert.deepEqual(report.plan.blocks.map((block) => block.id), ['main-helpers', 'main-handler', 'preload-bridge'])
     for (const block of report.plan.blocks) assert.equal(block.budget, block.byteLength - block.codeLength)
     assert.equal(report.plan.header.length, 2)
     assert.equal(report.plan.header[0].mode, 'offset')
-  } finally {
-    space.dispose()
-  }
-})
-
-test('status 在锚点被别的插件占用时如实报失败，而不是抛异常', () => {
-  const space = workspace({ main: { occupied: 'handler' } })
-  try {
-    const report = status({ archive: space.archive })
-    assert.equal(report.plan.ok, false)
-    assert.equal(report.plan.error.code, 'anchor-missing')
-    assert.match(JSON.stringify(report.plan.error.details), /DWC/)
-    assert.equal(report.dwc, true)
   } finally {
     space.dispose()
   }
@@ -346,7 +332,7 @@ test('ensurePatched 在可注入归档上装好，在不可注入归档上只写
     space.dispose()
   }
 
-  const broken = workspace({ main: { occupied: 'handler' } })
+  const broken = workspace({ main: { omit: ['mainHandler'] } })
   try {
     const report = ensurePatched({ archive: broken.archive, dir: broken.dir, running: false })
     assert.equal(report.ok, false)

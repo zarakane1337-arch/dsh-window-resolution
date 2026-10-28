@@ -69,7 +69,7 @@ test('README 的相对链接都指向仓库内真实存在的文件', () => {
   }
 })
 
-test('README 覆盖预设、强制应用、两次重启、共存、降级与退出码', () => {
+test('README 覆盖预设、强制应用、两次重启、降级与退出码', () => {
   const readme = prose(read('README.md'))
   for (const preset of ['1280×720', '1366×768', '1600×900', '1920×1080', '2560×1440', '3840×2160']) {
     assert.ok(readme.includes(preset), `README 必须列出预设分辨率 ${preset}`)
@@ -77,7 +77,6 @@ test('README 覆盖预设、强制应用、两次重启、共存、降级与退�
   assert.match(readme, /强制应用/, '必须使用 GLOSSARY 的「强制应用」')
   assert.match(readme, /force-applied|force-apply/i, '英文段落必须使用 force-apply 术语')
   assert.match(readme, /两次重启/, '必须说明两次重启')
-  assert.match(readme, /dsh-window-control/, '必须说明与 dsh-window-control 共存')
   assert.match(readme, /node lib\/bridge-cli\.mjs uninstall/, '卸载必须先还原：给出 uninstall 命令')
   assert.match(readme, /非桌面端/, '必须说明非桌面环境的降级行为')
   assert.match(readme, /退出码/, 'CLI 速查必须解释退出码')

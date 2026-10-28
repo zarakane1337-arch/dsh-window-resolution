@@ -85,10 +85,10 @@ test('自愈（force）在合成归档上真的装一次，第二次报 already'
   }
 })
 
-test('自愈失败（锚点被占）只落状态，不抛、不改归档', () => {
+test('自愈失败（锚点缺失）只落状态，不抛、不改归档', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'rsz-host-broken-'))
   const archive = path.join(dir, 'app.asar')
-  const original = defaultArchive({ main: { occupied: 'handler' } }).buffer
+  const original = defaultArchive({ main: { omit: ['mainHandler'] } }).buffer
   fs.writeFileSync(archive, original)
   const profile = path.join(dir, 'profile')
   try {

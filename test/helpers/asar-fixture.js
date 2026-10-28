@@ -39,9 +39,9 @@ export function commentBlock(firstLine, minBytes) {
 /**
  * 造一段与真实 `lib/main.js` 同形的合成源码。
  *
- * @param {{omit?: string[], occupied?: boolean, shortHelpers?: boolean}} [options] - 变形开关。
+ * @param {{omit?: string[], shortHelpers?: boolean}} [options] - 变形开关。
  *   `omit` 里的键（`mainHelpers` / `mainHelpersFallback` / `mainHandler`）对应的注释不再出现；
- *   `occupied` 在候选注释里塞进外部插件标记；`shortHelpers` 把首个候选注释压到放不下载荷。
+ *   `shortHelpers` 把首个候选注释压到放不下载荷。
  * @returns {string} 源码文本。
  */
 export function mainEntry(options = {}) {
@@ -68,11 +68,7 @@ export function mainEntry(options = {}) {
 
   if (!omit.has('mainHelpers')) {
     const filler = options.shortHelpers ? 120 : 620
-    const body =
-      options.occupied === 'helpers'
-        ? `${commentBlock('Compare two raw configs, treating schema-declared volatile fields', filler).slice(0, -2)}\n* ${'DWC=[[ external injection marker '}\n*/`
-        : commentBlock('Compare two raw configs, treating schema-declared volatile fields', filler)
-    parts.push(body)
+    parts.push(commentBlock('Compare two raw configs, treating schema-declared volatile fields', filler))
   }
   parts.push(
     'function equalExceptVolatile(a, b) {',
@@ -83,11 +79,7 @@ export function mainEntry(options = {}) {
   )
 
   if (!omit.has('mainHandler')) {
-    const body =
-      options.occupied === 'handler'
-        ? `${commentBlock('Zero-dependency atomic file replacement and writer coordination.', 760).slice(0, -2)}\n* DWC=[[ external injection marker\n*/`
-        : commentBlock('Zero-dependency atomic file replacement and writer coordination.', 760)
-    parts.push(body)
+    parts.push(commentBlock('Zero-dependency atomic file replacement and writer coordination.', 760))
   }
   parts.push(
     'function replaceFileSync(target, bytes) {',
@@ -103,7 +95,7 @@ export function mainEntry(options = {}) {
 /**
  * 造一段与真实 `lib/preload-app.cjs` 同形的合成源码。
  *
- * @param {{omit?: boolean, occupied?: boolean}} [options] - `omit` 去掉 Q1 注释；`occupied` 塞进外部标记。
+ * @param {{omit?: boolean}} [options] - `omit` 去掉 Q1 注释。
  * @returns {string} 源码文本。
  */
 export function preloadEntry(options = {}) {
@@ -118,9 +110,7 @@ export function preloadEntry(options = {}) {
   ]
   if (!options.omit) {
     parts.push(
-      options.occupied
-        ? '//#region lib/types/preload-platform.js /* DWC=[[ external marker */'
-        : '//#region lib/types/preload-platform.js',
+      '//#region lib/types/preload-platform.js',
       '/** Marks the document root with the host platform so shared Web UI CSS can scope desktop-only rules. */',
       '/**',
       '* Sets `data-platform` (e.g. `darwin`) on `<html>`, deferring to DOMContentLoaded',
