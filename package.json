@@ -15,9 +15,12 @@
     "lib",
     "locale",
     "cordis.patch.yml",
+    "README.md",
+    "CHANGELOG.md",
     "docs/ipc-contract.md",
     "docs/settings-ui.md",
     "docs/asar-injection.md",
+    "docs/adr",
     "LICENSE"
   ],
   "dsh": {
