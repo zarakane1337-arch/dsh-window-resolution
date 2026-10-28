@@ -13,13 +13,13 @@
  */
 
 /** 与 T03 设置页共用的配置键（localStorage）。 */
-export const CONFIG_KEY = 'dsh-plugin-resolution:config'
+export const CONFIG_KEY = 'dsh-window-resolution:config'
 
 /** 最近一次真正应用后的窗口几何（与设置页共享，便于状态展示）。 */
-export const LAST_APPLIED_KEY = 'dsh-plugin-resolution:last-applied'
+export const LAST_APPLIED_KEY = 'dsh-window-resolution:last-applied'
 
 /** 启动状态（供设置页读取展示）。 */
-export const STATUS_KEY = 'dsh-plugin-resolution:status'
+export const STATUS_KEY = 'dsh-window-resolution:status'
 
 /**
  * 临时替换一个全局属性，返回恢复函数。

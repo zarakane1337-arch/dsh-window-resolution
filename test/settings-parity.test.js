@@ -54,7 +54,7 @@ test('客户端与启动半边共用持久化键和变更广播名', () => {
   assert.equal(meta.configKey, CONFIG_KEY)
   assert.equal(meta.statusKey, STATUS_KEY)
   assert.equal(meta.lastAppliedKey, LAST_APPLIED_KEY)
-  assert.equal(meta.changeEvent, 'dsh-plugin-resolution:changed')
+  assert.equal(meta.changeEvent, 'dsh-window-resolution:changed')
 })
 
 test('docs/settings-ui.md 记录了存储键、广播名与降级行为', () => {

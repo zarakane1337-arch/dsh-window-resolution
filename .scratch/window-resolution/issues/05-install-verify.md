@@ -20,7 +20,7 @@
 
 已在本机 desktop profile 完成实机验证：
 
-- 安装：`C:\Users\zarak\.dsh\local-plugins\dsh-plugin-resolution` + profile `node_modules` 链接 + `dsh.profile.bundles` 注册；首次重启报 `cannot resolve profile bundle`，补链接后修复。
+- 安装：`C:\Users\zarak\.dsh\local-plugins\dsh-window-resolution` + profile `node_modules` 链接 + `dsh.profile.bundles` 注册；首次重启报 `cannot resolve profile bundle`，补链接后修复。
 - 注入：v1 载荷（T02）→ review 修复版 v2（`f1d98ca`）重注成功；`node lib/bridge-cli.mjs status` 输出：
   `载荷版本：2（当前 v2）`、`自洽：是`、`DSH 版本：44.7.0`、`dwc：检测到…将避开其字节区间`、锚点 `main-helpers 530 B @119353`、`main-handler 689 B @126252`、`preload-bridge 271 B @1846`。
 - 运行验证（用户实机确认）：设置页出现"窗口分辨率"分区、默认关闭；选 1920×1080 立即变尺寸且居中；重启后启动即自动应用；自定义 200×200 实际接近 200（受宿主最小窗口尺寸约束，回读 bounds 为准）。

@@ -12,9 +12,9 @@
 
 | 键 | 写入方 | 内容 |
 | --- | --- | --- |
-| `dsh-plugin-resolution:config` | 设置页、启动应用（T04） | `{"mode":"preset"\|"custom"\|"off","width":number,"height":number,"presetValue":string\|null}` |
-| `dsh-plugin-resolution:last-applied` | 启动应用（T04） | 最近一次真正生效的 `{width,height,x?,y?,at}`（可能被钳制） |
-| `dsh-plugin-resolution:status` | 启动应用（T04） | `{state,at,...}`，`state` ∈ `not-desktop` / `off` / `pending` / `not-patched` / `applied` / `failed`（失败带 `code`、`message`） |
+| `dsh-window-resolution:config` | 设置页、启动应用（T04） | `{"mode":"preset"\|"custom"\|"off","width":number,"height":number,"presetValue":string\|null}` |
+| `dsh-window-resolution:last-applied` | 启动应用（T04） | 最近一次真正生效的 `{width,height,x?,y?,at}`（可能被钳制） |
+| `dsh-window-resolution:status` | 启动应用（T04） | `{state,at,...}`，`state` ∈ `not-desktop` / `off` / `pending` / `not-patched` / `applied` / `failed`（失败带 `code`、`message`） |
 
 `presetValue` 是派生字段：等于尺寸对应预设的 key（`"1920x1080"` 形态），不是预设尺寸时为
 `null`。读取时一律经过与 `lib/config.js` 的 `normalizeConfig()` 相同的规则：存储损坏、
@@ -29,7 +29,7 @@
 ## 变更广播
 
 每次用户变更都会：写入 `config` 键 → 在当前 `window` 上派发
-`dsh-plugin-resolution:changed`，`event.detail` 是完整配置对象。同页其他分区/其他窗口
+`dsh-window-resolution:changed`，`event.detail` 是完整配置对象。同页其他分区/其他窗口
 据此同步显示；监听方只更新界面，不重复写存储、不重复调桥。外部广播（例如 T04 补应用
 前更新配置）也会让设置页刷新选中项与状态行。
 

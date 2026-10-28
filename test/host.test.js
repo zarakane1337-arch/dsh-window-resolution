@@ -10,7 +10,7 @@ import { defaultArchive } from './helpers/asar-fixture.js'
 import { createContext } from './helpers/client-harness.js'
 
 test('宿主入口声明插件名与空的注入列表', () => {
-  assert.equal(name, 'dsh-plugin-resolution')
+  assert.equal(name, 'dsh-window-resolution')
   assert.deepEqual(inject, [], '骨架阶段不注入任何宿主服务')
   assert.equal(typeof namedApply, 'function')
   assert.equal(apply, namedApply, 'default 导出必须就是 apply')

@@ -18,7 +18,7 @@ function setup(options = {}) {
 
 test('客户端以包名登记 lazy factory，并只注入插槽服务', () => {
   const { entry, exports } = loadClient()
-  assert.equal(entry.id, 'dsh-plugin-resolution', 'id 必须与包名一致')
+  assert.equal(entry.id, 'dsh-window-resolution', 'id 必须与包名一致')
   assert.equal(typeof entry.factory, 'function')
   assert.equal(typeof exports.apply, 'function')
   assert.deepEqual(exports.inject, ['slots'])
@@ -65,8 +65,8 @@ test('接入 locale 服务后标题跟随应用语言，而不是浏览器语言
   exports.apply(ctx)
   record.inject[0].callback()
   const label = record.register[0].meta.label
-  assert.deepEqual(record.localeRegister.map((entry) => entry.namespace), ['dsh-plugin-resolution'])
-  assert.deepEqual(record.localeBind, ['dsh-plugin-resolution'])
+  assert.deepEqual(record.localeRegister.map((entry) => entry.namespace), ['dsh-window-resolution'])
+  assert.deepEqual(record.localeBind, ['dsh-window-resolution'])
   assert.equal(label(), '窗口分辨率', 'boundLanguage 默认 zh，应压过 navigator 的 en-US')
 })
 

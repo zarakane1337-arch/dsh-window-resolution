@@ -13,10 +13,10 @@ import { PRESETS } from '../lib/config.js'
 import { STATUS_KEY } from './helpers/startup-harness.js'
 
 /** 设置页写配置用的 localStorage 键（必须与 docs/settings-ui.md 一致）。 */
-const STORAGE_KEY = 'dsh-plugin-resolution:config'
+const STORAGE_KEY = 'dsh-window-resolution:config'
 
 /** 配置变更广播的事件名（T04 的启动强制应用也听它）。 */
-const CHANGE_EVENT = 'dsh-plugin-resolution:changed'
+const CHANGE_EVENT = 'dsh-window-resolution:changed'
 
 /** 自定义宽高输入的防抖时长，必须与实现一致。 */
 const DEBOUNCE_MS = 400

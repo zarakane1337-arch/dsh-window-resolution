@@ -105,7 +105,7 @@ test('readArchive 只读头部、readEntry 按绝对偏移取条目字节', () =
 })
 
 test('sha256 与 node:crypto 算出的十六进制一致（integrity 重算的基础）', () => {
-  const bytes = Buffer.from('dsh-plugin-resolution', 'utf8')
+  const bytes = Buffer.from('dsh-window-resolution', 'utf8')
   assert.equal(sha256(bytes), createHash('sha256').update(bytes).digest('hex'))
   assert.equal(sha256(bytes).length, 64)
 })

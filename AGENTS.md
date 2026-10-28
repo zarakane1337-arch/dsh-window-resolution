@@ -1,4 +1,4 @@
-# dsh-plugin-resolution
+# dsh-window-resolution
 
 DeepSeek Harness（DSH）桌面窗口自定义分辨率插件：设置页提供预设分辨率与自定义宽高，即改即用，并在每次 DSH 启动时按配置强制应用。
 

@@ -1,4 +1,4 @@
-# DSH 窗口分辨率插件（dsh-plugin-resolution）
+# DSH 窗口分辨率插件（dsh-window-resolution）
 
 <a id="zh"></a>
 
@@ -40,15 +40,15 @@
 在 DSH 的插件安装对话框里填包名或本地路径，或使用 CLI（`dsh plugin add` 后面跟包名、Git 地址、压缩包或本地绝对路径）：
 
 ```bash
-dsh plugin add dsh-plugin-resolution             # npm 发布后：包名
-dsh plugin add C:/path/to/dsh-plugin-resolution  # 未发布时：本地绝对路径
+dsh plugin add dsh-window-resolution             # npm 发布后：包名
+dsh plugin add C:/path/to/dsh-window-resolution  # 未发布时：本地绝对路径
 ```
 
-手动方式：在 `~/.dsh/profiles/<profile>/package.json` 里把 `"dsh-plugin-resolution": "link:C:/path/to/dsh-plugin-resolution"` 加进 `dependencies`、把 `"dsh-plugin-resolution"` 加进 `dsh.profile.bundles`，再在该 profile 目录执行 `pnpm install`，然后重启 DSH 让插件加载。
+手动方式：在 `~/.dsh/profiles/<profile>/package.json` 里把 `"dsh-window-resolution": "link:C:/path/to/dsh-window-resolution"` 加进 `dependencies`、把 `"dsh-window-resolution"` 加进 `dsh.profile.bundles`，再在该 profile 目录执行 `pnpm install`，然后重启 DSH 让插件加载。
 
 #### 2. 注入窗口通道
 
-在插件目录（本地路径安装时就是仓库根；从 profile 安装时是 `~/.dsh/profiles/<profile>/node_modules/dsh-plugin-resolution`，`link:` 安装则指向源目录）执行：
+在插件目录（本地路径安装时就是仓库根；从 profile 安装时是 `~/.dsh/profiles/<profile>/node_modules/dsh-window-resolution`，`link:` 安装则指向源目录）执行：
 
 ```bash
 node lib/bridge-cli.mjs status              # 只读：归档路径、注入状态、dwc 共存、锚点与预算
@@ -100,7 +100,7 @@ node lib/bridge-cli.mjs check    # 期望「自洽：是」
    ```
 
    也可以先单独执行 `node lib/bridge-cli.mjs restore` 确认还原，再移除插件。
-3. 移除插件：在 DSH 插件管理里移除，或从 profile 的 `package.json` 删除 `dependencies` 与 `dsh.profile.bundles` 里的 `dsh-plugin-resolution` 条目后重新安装依赖、重启 DSH。
+3. 移除插件：在 DSH 插件管理里移除，或从 profile 的 `package.json` 删除 `dependencies` 与 `dsh.profile.bundles` 里的 `dsh-window-resolution` 条目后重新安装依赖、重启 DSH。
 4. 复核：`node lib/bridge-cli.mjs status` 应显示「未注入」（退出码 2）。
 
 先移除插件会失去插件自带的还原入口，`app.asar` 里的注入字节会残留；此时需要重新拿到插件（或同版本源码）再执行 `restore`。不要在缺少回滚边车时手改 `app.asar` 字节。
@@ -202,13 +202,13 @@ This plugin can be installed alongside `dsh-window-control` (dwc):
 **1. Install the plugin into a profile.** Use the DSH plugin install dialog, or the `dsh plugin add` CLI with a package name, Git URL, tarball, or absolute local path:
 
 ```bash
-dsh plugin add dsh-plugin-resolution             # package name (once published)
-dsh plugin add C:/path/to/dsh-plugin-resolution  # local absolute path
+dsh plugin add dsh-window-resolution             # package name (once published)
+dsh plugin add C:/path/to/dsh-window-resolution  # local absolute path
 ```
 
-Or edit `~/.dsh/profiles/<profile>/package.json` directly: add `"dsh-plugin-resolution": "link:C:/path/to/dsh-plugin-resolution"` to `dependencies` and `"dsh-plugin-resolution"` to `dsh.profile.bundles`, then run `pnpm install` in the profile directory and restart DSH.
+Or edit `~/.dsh/profiles/<profile>/package.json` directly: add `"dsh-window-resolution": "link:C:/path/to/dsh-window-resolution"` to `dependencies` and `"dsh-window-resolution"` to `dsh.profile.bundles`, then run `pnpm install` in the profile directory and restart DSH.
 
-**2. Inject the window channel.** From the plugin directory (the repo root for a local install, or `~/.dsh/profiles/<profile>/node_modules/dsh-plugin-resolution`):
+**2. Inject the window channel.** From the plugin directory (the repo root for a local install, or `~/.dsh/profiles/<profile>/node_modules/dsh-window-resolution`):
 
 ```bash
 node lib/bridge-cli.mjs status              # read-only: archive, injection state, dwc, anchors
@@ -235,7 +235,7 @@ A single restart may still show "the window channel is not injected yet" in Sett
 2. Restore from the plugin directory. `uninstall` runs `restore` first and then deletes the state file; it never claims success when the restore failed (non-zero exit):
    `node lib/bridge-cli.mjs uninstall`
    You can also run `restore` on its own and verify before removing the plugin.
-3. Remove the plugin: use the DSH plugin manager, or delete the `dsh-plugin-resolution` entry from the profile's `dependencies` and `dsh.profile.bundles`, then reinstall dependencies and restart DSH.
+3. Remove the plugin: use the DSH plugin manager, or delete the `dsh-window-resolution` entry from the profile's `dependencies` and `dsh.profile.bundles`, then reinstall dependencies and restart DSH.
 4. Re-check: `node lib/bridge-cli.mjs status` should report "未注入" (not injected) with exit code 2.
 
 Removing the plugin first loses the bundled restore entry point and leaves the injected bytes behind; you would then need to obtain the plugin again to run `restore`. Never hand-edit `app.asar` bytes without the rollback sidecar.

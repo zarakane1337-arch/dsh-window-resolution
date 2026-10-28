@@ -1,6 +1,6 @@
-# dsh-plugin-resolution bundle layer.
+# dsh-window-resolution bundle layer.
 #
-# 由 package.json 的 `dsh.bundle.patch` 声明，`dsh plugin add dsh-plugin-resolution`
+# 由 package.json 的 `dsh.bundle.patch` 声明，`dsh plugin add dsh-window-resolution`
 # 会自动挂载这条 insert。
 #
 # 本插件是双载体（host + client）：client 半体负责设置页 UI，host 半体负责
@@ -8,5 +8,5 @@
 # host 半体的 apply() 在每次启动时自检：未注入就注入，载荷版本过期就还原后重注，
 # 失败只写状态文件、不阻塞启动。insert 只负责把插件挂进插件树。
 - insert:
-    - id: dsh-plugin-resolution
-      name: dsh-plugin-resolution
+    - id: dsh-window-resolution
+      name: dsh-window-resolution

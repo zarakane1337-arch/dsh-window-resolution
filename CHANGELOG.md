@@ -1,6 +1,6 @@
 # Changelog
 
-本文件记录 dsh-plugin-resolution 的显著变更。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
+本文件记录 dsh-window-resolution 的显著变更。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
 ## [0.1.0] - 2026-10-28
 
@@ -9,7 +9,7 @@
 ### 新增
 
 - 设置页「窗口分辨率」分区：六档**预设分辨率**（1280×720、1366×768、1600×900、1920×1080、2560×1440、3840×2160）、**自定义分辨率**（200–16384 的整数宽高）与「关闭」三选一；选择后立即调用 `window.dshWindowResolution.setBounds` 并用主进程回读的实际尺寸回显。
-- 配置持久化到 profile 的 `localStorage`（`dsh-plugin-resolution:config`），变更通过 `dsh-plugin-resolution:changed` 广播；非法值回落到默认配置（关闭 + 1920×1080），不静默改成用户没选过的尺寸。
+- 配置持久化到 profile 的 `localStorage`（`dsh-window-resolution:config`），变更通过 `dsh-window-resolution:changed` 广播；非法值回落到默认配置（关闭 + 1920×1080），不静默改成用户没选过的尺寸。
 - Host 半体对 `resources/app.asar` 的 `lib/main.js` 与 `lib/preload-app.cjs` 做等长 ASCII 注入，打开 `dsh-desktop:window-bounds-set` IPC（`assertDesktopSender` + `BrowserWindow.setBounds`）；重算条目 `integrity.hash`，不改归档布局。
 - **强制应用**：启动时按配置先退出全屏/取消最大化（等待窗口状态迁移，400ms 兜底超时），按当前屏幕工作区**钳制**目标尺寸，再居中并回读实际 bounds；接受一次轻微闪烁。
 - 注入锚点用候选数组，写入前校验目标符号与 ASCII/等长/字节预算，失败即中止不写入；自动避开 `dsh-window-control` 占用的字节区间。

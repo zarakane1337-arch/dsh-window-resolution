@@ -1,5 +1,5 @@
 {
-  "name": "dsh-plugin-resolution",
+  "name": "dsh-window-resolution",
   "version": "0.1.0",
   "description": "Pick a window resolution (presets or custom width x height) for the DeepSeek Harness desktop window: applies immediately from Settings and is force-applied on every DSH launch. Requires the plugin's own app.asar window-bounds bridge; degrades silently outside the desktop app.",
   "type": "module",

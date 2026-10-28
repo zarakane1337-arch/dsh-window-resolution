@@ -30,7 +30,7 @@ function manifest() {
 
 test('清单声明 DSH 能识别的包身份与双载体入口', () => {
   const pkg = manifest()
-  assert.equal(pkg.name, 'dsh-plugin-resolution')
+  assert.equal(pkg.name, 'dsh-window-resolution')
   assert.match(pkg.version, /^\d+\.\d+\.\d+$/)
   assert.equal(pkg.type, 'module')
   assert.equal(pkg.license, 'MIT')
