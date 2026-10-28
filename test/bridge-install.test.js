@@ -262,6 +262,21 @@ test('check 对已注入归档报一致，对缺锚点归档报不可注入', ()
   }
 })
 
+test('归档不可写时给 not-writable，且一个字节都不改', { skip: process.platform === 'win32' ? 'Windows 上 chmod 不改真实权限' : false }, () => {
+  const space = workspace()
+  try {
+    const before = fs.readFileSync(space.archive)
+    fs.chmodSync(space.archive, 0o444)
+    const error = throwsBridge(() => install({ archive: space.archive, dir: space.dir, running: false }), 'not-writable')
+    assert.match(error.message, /write|写权限|EACCES|EPERM/)
+    fs.chmodSync(space.archive, 0o644)
+    assert.deepEqual(fs.readFileSync(space.archive), before)
+    assert.equal(fs.existsSync(path.join(space.dir, RECOVERY_FILE)), false)
+  } finally {
+    space.dispose()
+  }
+})
+
 test('verifyArchive 在归档没写成功时抛 verify', () => {
   const space = workspace()
   try {

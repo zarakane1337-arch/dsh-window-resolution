@@ -16,7 +16,8 @@
     "locale",
     "cordis.patch.yml",
     "docs/ipc-contract.md",
-    "LICENSE"
+    "LICENSE",
+    "docs/asar-injection.md"
   ],
   "dsh": {
     "manifestVersion": 1,
@@ -36,7 +37,8 @@
     "node": ">=20"
   },
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "bridge": "node lib/bridge-cli.mjs"
   },
   "keywords": [
     "deepseek-harness",
