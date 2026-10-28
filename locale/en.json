@@ -5,9 +5,22 @@
   },
   "section": "Window Resolution",
   "sectionDescription": "Choose the outer size of the DSH main window. Changes apply immediately and are force-applied on every DSH launch.",
+  "presetsLabel": "Preset sizes",
+  "modeCustom": "Custom",
+  "modeOff": "Off (leave the window alone)",
+  "widthLabel": "Width",
+  "heightLabel": "Height",
+  "invalidSize": "Width and height must be integers between 200 and 16384.",
   "statusDesktop": "DSH desktop app detected.",
   "statusNotDesktop": "Not running in the DSH desktop app, so the window size cannot be changed here.",
   "statusPatched": "The window channel is ready.",
   "statusNotPatched": "The window channel is not injected yet; after injecting, restart DSH twice.",
-  "statusError": "Last attempt failed: {message}"
+  "statusOff": "Off: the window size is no longer managed.",
+  "statusApplied": "Current window size: {width}×{height} logical pixels.",
+  "statusStartupApplied": "Applied at last launch: {width}×{height} logical pixels.",
+  "statusPending": "Applying the saved size…",
+  "statusNoWindow": "The main window cannot be resized right now; reopen the DSH window and try again.",
+  "statusRejected": "The desktop app rejected the change: {message}",
+  "statusError": "Last attempt failed: {message}",
+  "renderFailed": "The settings section failed to render; check the DSH logs and try again."
 }

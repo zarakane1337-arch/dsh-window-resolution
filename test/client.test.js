@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { createContext, loadClient, textOf, withBrowserLanguage } from './helpers/client-harness.js'
+import { createContext, createFakeWindow, loadClient, textOf, withBrowserLanguage } from './helpers/client-harness.js'
+import { createReact } from './helpers/fake-react.js'
 
 /**
  * 拿一份加载好的客户端与一份记录型上下文。
@@ -69,20 +70,21 @@ test('接入 locale 服务后标题跟随应用语言，而不是浏览器语言
   assert.equal(label(), '窗口分辨率', 'boundLanguage 默认 zh，应压过 navigator 的 en-US')
 })
 
-test('占位分区渲染标题与一行说明，且是纯函数', () => {
-  const { exports, ctx, record } = setup({ language: 'en-US', withLocale: false })
+test('设置分区渲染标题与一行说明', () => {
+  const { react, mount } = createReact()
+  const { exports } = loadClient({
+    react,
+    window: createFakeWindow(),
+    language: 'en-US',
+  })
+  const { ctx, record } = createContext({ boundLanguage: 'en' })
   exports.apply(ctx)
   record.inject[0].callback()
-  withBrowserLanguage('en-US', () => {
-    const section = record.register[0].component
-    const first = section()
-    const second = section()
-    assert.ok(first && typeof first === 'object', '必须返回可渲染的元素')
-    const text = textOf(first)
-    assert.ok(text.includes('Window Resolution'), `标题缺失: ${text}`)
-    assert.ok(text.includes(exports.locales.en.sectionDescription), `说明缺失: ${text}`)
-    assert.equal(textOf(second), text, '同样的输入必须渲染同样的输出')
-  })
+  const view = mount(record.register[0].component)
+  assert.ok(view.element && typeof view.element === 'object', '必须返回可渲染的元素')
+  assert.ok(view.text.includes('Window Resolution'), `标题缺失: ${view.text}`)
+  assert.ok(view.text.includes(exports.locales.en.sectionDescription), `说明缺失: ${view.text}`)
+  view.unmount()
 })
 
 test('上下文不完整或插槽未就绪时静默降级，绝不抛错', () => {

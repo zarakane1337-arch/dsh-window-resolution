@@ -16,8 +16,9 @@
     "locale",
     "cordis.patch.yml",
     "docs/ipc-contract.md",
-    "LICENSE",
-    "docs/asar-injection.md"
+    "docs/settings-ui.md",
+    "docs/asar-injection.md",
+    "LICENSE"
   ],
   "dsh": {
     "manifestVersion": 1,

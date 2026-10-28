@@ -5,9 +5,22 @@
   },
   "section": "窗口分辨率",
   "sectionDescription": "选择主窗口的外框尺寸，改完立即生效，并在每次启动 DSH 时强制应用。",
+  "presetsLabel": "预设尺寸",
+  "modeCustom": "自定义",
+  "modeOff": "关闭（不调整窗口）",
+  "widthLabel": "宽度",
+  "heightLabel": "高度",
+  "invalidSize": "宽高需为 200 到 16384 之间的整数。",
   "statusDesktop": "已检测到 DSH 桌面端。",
   "statusNotDesktop": "当前不在 DSH 桌面端运行，窗口尺寸无法在这里调整。",
   "statusPatched": "窗口通道已就绪。",
   "statusNotPatched": "窗口通道尚未注入；注入完成后需要重启 DSH 两次才会生效。",
-  "statusError": "上次操作失败：{message}"
+  "statusOff": "已关闭：不再调整窗口尺寸。",
+  "statusApplied": "当前窗口尺寸：{width}×{height} 逻辑像素。",
+  "statusStartupApplied": "上次启动已应用：{width}×{height} 逻辑像素。",
+  "statusPending": "正在应用上次选择的尺寸…",
+  "statusNoWindow": "主窗口当前不可调整；请重新打开 DSH 窗口后再试。",
+  "statusRejected": "桌面端拒绝了这次调整：{message}",
+  "statusError": "上次操作失败：{message}",
+  "renderFailed": "设置分区渲染失败；请查看 DSH 日志后重试。"
 }

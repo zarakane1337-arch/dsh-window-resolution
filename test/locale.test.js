@@ -17,11 +17,24 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const REQUIRED_KEYS = [
   'section',
   'sectionDescription',
+  'presetsLabel',
+  'modeCustom',
+  'modeOff',
+  'widthLabel',
+  'heightLabel',
+  'invalidSize',
   'statusDesktop',
   'statusNotDesktop',
   'statusPatched',
   'statusNotPatched',
+  'statusOff',
+  'statusApplied',
+  'statusStartupApplied',
+  'statusPending',
+  'statusNoWindow',
+  'statusRejected',
   'statusError',
+  'renderFailed',
 ]
 
 /**
