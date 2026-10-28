@@ -79,12 +79,18 @@ function fakeBridge(options = {}) {
  * }} 可交互的视图与依赖。
  */
 function setup(options = {}) {
-  const storage = options.storage || createFakeStorage(options.seed || {})
+  const seed = options.seed || {}
+  const storage = options.storage || createFakeStorage()
   const win = options.win || createFakeWindow({ storage, bridge: options.bridge })
   const { react, mount } = createReact()
   const { exports } = loadClient({ react, window: win, language: 'zh-CN' })
   const { ctx, record } = createContext({ boundLanguage: 'zh' })
   exports.apply(ctx)
+  /*
+   * 种子在 apply 之后写入：模拟“启动应用已经跑完并把结果落盘，用户随后打开设置页”。
+   * 若在 apply 之前写入，T04 的启动流程会按当前假环境再写一次状态键，把种子覆盖掉。
+   */
+  for (const [key, value] of Object.entries(seed)) storage.setItem(key, value)
   record.inject[0].callback()
   const view = mount(record.register[0].component)
   return { exports, win, storage, bridge: options.bridge, view }
@@ -431,18 +437,19 @@ test('getState 抛错或返回垃圾时静默降级', async () => {
 
 test('错误码映射为对应文案', async () => {
   const cases = [
-    ['no-window', 'window is gone', 'statusNoWindow'],
-    ['not-patched', 'no channel', 'statusNotPatched'],
-    ['not-desktop', 'not desktop', 'statusNotDesktop'],
-    ['invalid', 'bad size', 'statusError'],
+    ['no-window', 'window is gone', 'statusNoWindow', false],
+    ['not-patched', 'no channel', 'statusNotPatched', false],
+    ['not-desktop', 'not desktop', 'statusNotDesktop', false],
+    ['invalid', 'bad size', 'statusError', true],
   ]
-  for (const [code, message, key] of cases) {
+  for (const [code, message, key, filled] of cases) {
     const bridge = fakeBridge({ result: () => ({ ok: false, code, message }) })
     const { view, exports } = setup({ bridge })
     choose(radioByValue(view, 'preset:1280x720'))
     await wait()
+    const expected = filled ? fill(exports, key, { message }) : exports.locales.zh[key]
     assert.ok(
-      textByRole(view, 'status').includes(exports.locales.zh[key]),
+      textByRole(view, 'status').includes(expected),
       `错误码 ${code} 应映射到 ${key}：${textByRole(view, 'status')}`,
     )
   }

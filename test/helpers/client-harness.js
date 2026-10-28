@@ -161,23 +161,28 @@ export function loadClient(options = {}) {
 
   const restoreWindow = stubGlobal('window', windowObject)
   const restoreNavigator = stubGlobal('navigator', { language })
+  let entry
+  let exports
   try {
     vm.runInThisContext(source, { filename: 'lib/client.js' })
+    const registrations = windowObject.__entries
+    if (registrations.length !== 1) {
+      throw new Error(`lib/client.js 应调用一次 __ModuleLoader__.load()，实际 ${registrations.length} 次`)
+    }
+    entry = registrations[0]
+    /*
+     * 工厂必须在假 window 还挂着的时候执行：真实加载器就是在这个环境里实例化客户端
+     * 的，客户端会在工厂里捕获宿主 window（设置页之后脱离浏览器全局也能读写存储）。
+     */
+    exports = entry.factory((name) => {
+      if (name === 'react') return react
+      if (Object.prototype.hasOwnProperty.call(extraModules, name)) return extraModules[name]
+      throw new Error(`意外的 require('${name}')：客户端只应依赖宿主提供的模块`)
+    })
   } finally {
     restoreNavigator()
     restoreWindow()
   }
-
-  const registrations = windowObject.__entries
-  if (registrations.length !== 1) {
-    throw new Error(`lib/client.js 应调用一次 __ModuleLoader__.load()，实际 ${registrations.length} 次`)
-  }
-  const entry = registrations[0]
-  const exports = entry.factory((name) => {
-    if (name === 'react') return react
-    if (Object.prototype.hasOwnProperty.call(extraModules, name)) return extraModules[name]
-    throw new Error(`意外的 require('${name}')：客户端只应依赖宿主提供的模块`)
-  })
   return { entry, exports, react, window: windowObject }
 }
 
